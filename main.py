@@ -15,7 +15,7 @@ def run_hugginface_model(model, encoded_input, steps=100):
         with torch.no_grad():
             _ = model(**encoded_input)
         times.append(time.time() - st)
-    return sum(times) / len(times)
+    return sum(times) / len(times) * 1000
 
 
 def optimized_and_run(text, model, tokenizer, save_dir):
@@ -40,8 +40,8 @@ def optimized_and_run(text, model, tokenizer, save_dir):
             extra_input_info=extra_input_info,
             use_torch_api=False
         )
-        optimized_time = run_hugginface_model(optimized_model, encoded_input)
         optimized_time_long = run_hugginface_model(optimized_model, long_encoded_input)
+        optimized_time = run_hugginface_model(optimized_model, encoded_input)
     time_dict = {
         "vanilla_time": vanilla_time,
         "vanilla_time_long": vanilla_time_long,
