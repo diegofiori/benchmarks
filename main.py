@@ -23,7 +23,7 @@ def optimized_and_run(text, model, tokenizer, save_dir):
     vanilla_time = run_hugginface_model(model, encoded_input)
     long_text = " ".join([text]*100)
     long_encoded_input = tokenizer(
-        long_text, return_tensors='pt', padding=True, truncation=True
+        long_text, return_tensors='pt', truncation=True
     )
     vanilla_time_long = run_hugginface_model(model, long_encoded_input)
 
