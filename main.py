@@ -19,15 +19,17 @@ def run_hugginface_model(model, encoded_input, steps=100):
 
 
 def optimized_and_run(text, model, tokenizer, save_dir):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     encoded_input = tokenizer(text, return_tensors='pt')
-    vanilla_time = run_hugginface_model(model, encoded_input)
+    vanilla_time = run_hugginface_model(model.to(device), encoded_input.to(device))
     long_text = " ".join([text]*100)
     long_encoded_input = tokenizer(
         long_text, return_tensors='pt', truncation=True
     )
-    vanilla_time_long = run_hugginface_model(model, long_encoded_input)
+    vanilla_time_long = run_hugginface_model(model.to(device), long_encoded_input.to(device))
 
     extra_input_info = [{}] + [{"max_value": 1, "min_value": 0}] * (len(long_encoded_input) - 1)
+    model.to("cpu")
     with TemporaryDirectory() as tmp_dir:
         optimized_model = optimize_huggingface_model(
             model=model,
