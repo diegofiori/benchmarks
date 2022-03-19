@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from nebullvm.api.frontend.hugginface import optimize_hugginface_model
+from nebullvm.api.frontend.huggingface import optimize_huggingface_model
 import torch
 
 
@@ -29,7 +29,7 @@ def optimized_and_run(text, model, tokenizer, save_dir):
 
     extra_input_info = [{}] + [{"max_value": 1, "min_value": 0}] * (len(long_encoded_input) - 1)
     with TemporaryDirectory() as tmp_dir:
-        optimized_model = optimize_hugginface_model(
+        optimized_model = optimize_huggingface_model(
             model=model,
             tokenizer=tokenizer,
             target_text=text,
