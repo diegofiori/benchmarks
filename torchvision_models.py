@@ -46,7 +46,7 @@ if __name__ == "__main__":
     import torchvision.models as models
 
     resnet18 = models.resnet18()
-    alexnet = models.alexnet()
+    # alexnet = models.alexnet()
     vgg16 = models.vgg16()
     squeezenet = models.squeezenet1_0()
     efficientnet_b0 = models.efficientnet_b0()
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     input_shape = (1, 3, 256, 256)
     optimize_and_run(resnet18, input_shape, "resnet18")
-    optimize_and_run(alexnet, input_shape, "alexnet")
+    # optimize_and_run(alexnet, input_shape, "alexnet")
     optimize_and_run(vgg16, input_shape, "vgg16")
     optimize_and_run(squeezenet, input_shape, "squeezenet")
     optimize_and_run(efficientnet_b0, input_shape, "efficientnet_b0")
