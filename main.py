@@ -77,6 +77,7 @@ def optimized_and_run_static(text, model, tokenizer, save_dir):
     time_dict = {
         "vanilla_time": vanilla_time, "optimized_time": optimized_time
     }
+    Path(save_dir).mkdir(exist_ok=True)
     with open(os.path.join(save_dir, "time_info.json"), "w") as f_out:
         json.dump(time_dict, f_out)
 
