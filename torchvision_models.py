@@ -30,7 +30,6 @@ def optimize_and_run(model, input_shape, save_dir):
             input_sizes=[input_shape[1:]],
             save_dir=tmp_dir,
             use_torch_api=True,
-
         )
         optimized_time = run_torch_model(optimized_model, input_tensor)
     time_dict = {
@@ -46,8 +45,6 @@ if __name__ == "__main__":
     import torchvision.models as models
 
     resnet18 = models.resnet18()
-    # alexnet = models.alexnet()
-    # vgg16 = models.vgg16()
     squeezenet = models.squeezenet1_0()
     efficientnet_b0 = models.efficientnet_b0()
     efficientnet_b1 = models.efficientnet_b1()
@@ -64,11 +61,10 @@ if __name__ == "__main__":
 
     input_shape = (1, 3, 256, 256)
     optimize_and_run(resnet18, input_shape, "resnet18")
-    # optimize_and_run(alexnet, input_shape, "alexnet")
-    # optimize_and_run(vgg16, input_shape, "vgg16")
     optimize_and_run(squeezenet, input_shape, "squeezenet")
     optimize_and_run(efficientnet_b0, input_shape, "efficientnet_b0")
     optimize_and_run(efficientnet_b1, input_shape, "efficientnet_b1")
+    optimize_and_run(efficientnet_b2, input_shape, "efficientnet_b2")
     optimize_and_run(efficientnet_b3, input_shape, "efficientnet_b3")
     optimize_and_run(efficientnet_b4, input_shape, "efficientnet_b4")
     optimize_and_run(efficientnet_b5, input_shape, "efficientnet_b5")
