@@ -75,6 +75,7 @@ def optimized_and_run_static(text, model, tokenizer, save_dir):
             extra_input_info=extra_input_info,
             use_torch_api=False,
             use_static_shape=True,
+            tokenizer_args={"truncation": True}
         )
         optimized_time = run_hugginface_model(optimized_model, encoded_input)
     time_dict = {
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     text = "Replace me by any text you'd like."
     optimized_and_run(text, model, tokenizer, save_dir="gpt2")
     optimized_and_run_static(text, model, tokenizer, "gpt2-static-short")
-    long_text = " ".join([text]*100)
+    long_text = " ".join([text]*200)
     optimized_and_run_static(long_text, model, tokenizer, "gpt2-static-long")
 
     from transformers import BertTokenizer, BertModel
@@ -103,5 +104,5 @@ if __name__ == "__main__":
     text = "Hello, my dog is cute"
     optimized_and_run(text, model, tokenizer, save_dir="bert")
     optimized_and_run_static(text, model, tokenizer, "bert-static-short")
-    long_text = " ".join([text] * 100)
+    long_text = " ".join([text] * 200)
     optimized_and_run_static(long_text, model, tokenizer, "bert-static-long")
