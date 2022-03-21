@@ -61,6 +61,8 @@ def optimized_and_run_static(text, model, tokenizer, save_dir):
     extra_input_info = [{}] + [{"max_value": 1, "min_value": 0}] * (len(encoded_input) - 1)
     vanilla_time = run_hugginface_model(model.to(device), encoded_input.to(device))
     model.to("cpu")
+    print([tuple(value.size()[1:]) for value in
+                             encoded_input.values()])
     with TemporaryDirectory() as tmp_dir:
         optimized_model = optimize_huggingface_model(
             model=model,
@@ -91,7 +93,7 @@ if __name__ == "__main__":
     text = "Replace me by any text you'd like."
     optimized_and_run(text, model, tokenizer, save_dir="gpt2")
     optimized_and_run_static(text, model, tokenizer, "gpt2-static-short")
-    long_text = " ".join([text]*200)
+    long_text = " ".join([text]*100)
     optimized_and_run_static(long_text, model, tokenizer, "gpt2-static-long")
 
     from transformers import BertTokenizer, BertModel
@@ -101,5 +103,5 @@ if __name__ == "__main__":
     text = "Hello, my dog is cute"
     optimized_and_run(text, model, tokenizer, save_dir="bert")
     optimized_and_run_static(text, model, tokenizer, "bert-static-short")
-    long_text = " ".join([text] * 200)
+    long_text = " ".join([text] * 100)
     optimized_and_run_static(long_text, model, tokenizer, "bert-static-long")
