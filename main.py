@@ -61,8 +61,6 @@ def optimized_and_run_static(text, model, tokenizer, save_dir):
     extra_input_info = [{}] + [{"max_value": 1, "min_value": 0}] * (len(encoded_input) - 1)
     vanilla_time = run_hugginface_model(model.to(device), encoded_input.to(device))
     model.to("cpu")
-    print([tuple(value.size()[1:]) for value in
-                             encoded_input.values()])
     with TemporaryDirectory() as tmp_dir:
         optimized_model = optimize_huggingface_model(
             model=model,
