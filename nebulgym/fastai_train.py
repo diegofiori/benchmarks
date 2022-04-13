@@ -7,10 +7,15 @@ from fastai.vision.all import (
 )
 try:
     from torch_ort import ORTModule
+
+    class NebORTModule(ORTModule):
+        def __getitem__(self, item):
+            return self._torch_module._flattened_module[item]
+
 except ImportError:
     import warnings
     warnings.warn("No torch-ort installation found")
-    from torch.nn import Sequential as ORTModule
+    from torch.nn import Sequential as NebORTModule
 
 
 def _get_dls():
@@ -34,11 +39,11 @@ def run_fastai_train(num_epochs: int = 5):
     return training_time
 
 
-def run_model_with_onnxruntime(num_epochs):
+def run_model_with_onnxruntime(num_epochs: int = 5):
     dls = _get_dls()
     learn = cnn_learner(dls, resnet34, metrics=accuracy, pretrained=False)
     model_copy = copy.deepcopy(learn.model)
-    onnx_model = ORTModule(model_copy)
+    onnx_model = NebORTModule(model_copy)
     learn.model = onnx_model
     st = time.time()
     learn.fit_one_cycle(num_epochs, 5e-3)
