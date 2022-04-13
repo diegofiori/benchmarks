@@ -10,7 +10,7 @@ try:
 
     class NebORTModule(ORTModule):
         def __getitem__(self, item):
-            return self._torch_module._flattened_module[item]
+            return self._torch_module._flattened_module._original_module[item]
 
 except ImportError:
     import warnings
