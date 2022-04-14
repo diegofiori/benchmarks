@@ -84,7 +84,7 @@ def run_onnx_train(epochs: int):
         return time.time() - st
 
 
-if __name__ == "__train__":
+if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", help="The number of epochs")
