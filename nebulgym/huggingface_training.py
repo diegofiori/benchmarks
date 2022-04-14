@@ -91,3 +91,5 @@ if __name__ == "__train__":
     args = parser.parse_args()
     epochs = int(args.epochs or 5)
     hf_time = run_huggingface_train(epochs)
+    onnx_time = run_onnx_train(epochs)
+    print(f"HF vanilla time {hf_time}. ONNX time: {onnx_time}")
