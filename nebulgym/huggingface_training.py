@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 import time
 
@@ -24,6 +25,7 @@ try:
     if not Path(rammer_path).exists():
         raise ImportError
     os.environ["PATH"] = os.path.abspath(rammer_path) + ":" + os.environ["PATH"]
+    sys.path.insert(1, os.path.abspath(f"{Path.home()}/nnfusion/src/python"))
 
     from nnfusion.trainer import PTTrainer as RummerTrainer
 except ImportError:
