@@ -20,7 +20,7 @@ except ImportError:
     from torch.nn import Sequential as ORTModule
 
 try:
-    rammer_path = f"{Path.home()}/build/src/tools/nnfusion"
+    rammer_path = f"{Path.home()}/nnfusion/build/src/tools/nnfusion"
     if not Path(rammer_path).exists():
         raise ImportError
     os.environ["PATH"] = os.path.abspath(rammer_path) + ":" + os.environ["PATH"]
