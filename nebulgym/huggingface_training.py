@@ -42,7 +42,7 @@ def _load_model():
 
 def _get_dataset(tokenizer):
     def preprocess_function(examples):
-        return tokenizer(examples["text"], truncation=True)
+        return tokenizer(examples["text"], truncation=True, padding=True)
 
     imdb = load_dataset("imdb")
     tokenized_imdb = imdb.map(preprocess_function, batched=True)
@@ -114,8 +114,11 @@ def _get_dataloaders(data, batch_size):
                 for key in self.keys
             }
 
+        def __len__(self):
+            return len(self.internal_dataset)
+
     train_ds = _TextDataset(data["train"])
-    val_ds = _TextDataset(data["val"])
+    val_ds = _TextDataset(data["test"])
     train_dl = torch.utils.data.DataLoader(train_ds, batch_size, shuffle=True)
     valid_dl = torch.utils.data.DataLoader(val_ds, batch_size)
     return train_dl, valid_dl
@@ -175,7 +178,7 @@ def run_rammer_train(epochs: int):
 
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
-            labels = batch['labels'].unsqueeze(0).to(device)
+            labels = batch['label'].to(device)
 
             nnf_loss = trainer(input_ids, attention_mask, labels)
 
