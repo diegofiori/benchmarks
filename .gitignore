@@ -1,2 +1,6 @@
 # Pycharm files
 .idea/
+
+# Result data
+nebullvm/base
+nebullvm/quantization

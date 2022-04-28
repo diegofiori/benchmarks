@@ -18,7 +18,7 @@ def run_torch_model(model, input_tensor, steps=100):
     return sum(times) / len(times) * 1000
 
 
-def optimize_and_run(model, input_shape, save_dir):
+def optimize_and_run(model, input_shape, save_dir, quantization_ths):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     input_tensor = torch.randn(input_shape)
     vanilla_time = run_torch_model(model.to(device), input_tensor.to(device))
@@ -29,7 +29,9 @@ def optimize_and_run(model, input_shape, save_dir):
             batch_size=input_shape[0],
             input_sizes=[input_shape[1:]],
             save_dir=tmp_dir,
-            use_torch_api=True,
+            use_torch_api=False,
+            quantization_ths=quantization_ths,
+            ignore_compilers=["tvm"],
         )
         optimized_time = run_torch_model(optimized_model, input_tensor)
     time_dict = {
@@ -42,35 +44,47 @@ def optimize_and_run(model, input_shape, save_dir):
 
 
 if __name__ == "__main__":
+    import argparse
     import torchvision.models as models
-
-    resnet18 = models.resnet18()
-    squeezenet = models.squeezenet1_0()
-    efficientnet_b0 = models.efficientnet_b0()
-    efficientnet_b1 = models.efficientnet_b1()
-    efficientnet_b2 = models.efficientnet_b2()
-    efficientnet_b3 = models.efficientnet_b3()
-    efficientnet_b4 = models.efficientnet_b4()
-    efficientnet_b5 = models.efficientnet_b5()
-    efficientnet_b6 = models.efficientnet_b6()
-    efficientnet_b7 = models.efficientnet_b7()
-    convnext_tiny = models.convnext_tiny()
-    convnext_small = models.convnext_small()
-    convnext_base = models.convnext_base()
-    convnext_large = models.convnext_large()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--quantization_ths",
+        "-q",
+        type=float,
+        help="The drop in precision accepted after quantization"
+    )
+    args = parser.parse_args()
+    quantization_ths = args.quantization_ths
+    print(f"Quantization: {quantization_ths}")
     input_shape = (1, 3, 256, 256)
-    optimize_and_run(resnet18, input_shape, "resnet18")
-    optimize_and_run(squeezenet, input_shape, "squeezenet")
-    optimize_and_run(efficientnet_b0, input_shape, "efficientnet_b0")
-    optimize_and_run(efficientnet_b1, input_shape, "efficientnet_b1")
-    optimize_and_run(efficientnet_b2, input_shape, "efficientnet_b2")
-    optimize_and_run(efficientnet_b3, input_shape, "efficientnet_b3")
-    optimize_and_run(efficientnet_b4, input_shape, "efficientnet_b4")
-    optimize_and_run(efficientnet_b5, input_shape, "efficientnet_b5")
-    optimize_and_run(efficientnet_b6, input_shape, "efficientnet_b6")
-    optimize_and_run(efficientnet_b7, input_shape, "efficientnet_b7")
-    optimize_and_run(convnext_tiny, input_shape, "convnext_tiny")
-    optimize_and_run(convnext_small, input_shape, "convnext_small")
-    optimize_and_run(convnext_base, input_shape, "convnext_base")
-    optimize_and_run(convnext_large, input_shape, "convnext_large")
+    model_tuples = [
+        (models.resnet18(), "resnet18"),
+        (models.squeezenet1_0(), "squeezenet"),
+        (models.efficientnet_b0(), "efficientnet_b0"),
+        (models.efficientnet_b1(), "efficientnet_b1"),
+        (models.efficientnet_b2(), "efficientnet_b2"),
+        (models.efficientnet_b3(), "efficientnet_b3"),
+        (models.efficientnet_b4(), "efficientnet_b4"),
+        (models.efficientnet_b5(), "efficientnet_b5"),
+        (models.efficientnet_b6(), "efficientnet_b6"),
+        (models.efficientnet_b7(), "efficientnet_b7"),
+        (models.convnext_tiny(), "convnext_tiny"),
+        (models.convnext_small(), "convnext_small"),
+        (models.convnext_base(), "convnext_base"),
+        (models.convnext_large(), "convnext_large"),
+        (models.resnet34(), "resnet34"),
+        (models.resnet50(), "resnet50"),
+        (models.resnet101(), "resnet101"),
+        (models.resnet152(), "resnet152"),
+    ]
+    if quantization_ths is None:
+        base_path = "base"
+    else:
+        base_path = "quantization"
+    Path(base_path).mkdir(exist_ok=True)
+
+    for model, model_name in model_tuples:
+        model_dir = os.path.join(base_path, model_name)
+        if Path(model_dir).exists():
+            continue
+        optimize_and_run(model, input_shape, model_dir, quantization_ths)
