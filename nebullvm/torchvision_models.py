@@ -53,10 +53,17 @@ if __name__ == "__main__":
         type=float,
         help="The drop in precision accepted after quantization"
     )
+    parser.add_argument(
+        "--batch_size",
+        "-bs",
+        type=int,
+        help="The batch size"
+    )
     args = parser.parse_args()
     quantization_ths = args.quantization_ths
+    bs = args.batch_size or 1
     print(f"Quantization: {quantization_ths}")
-    input_shape = (1, 3, 256, 256)
+    input_shape = (bs, 3, 256, 256)
     model_tuples = [
         (models.resnet18(), "resnet18"),
         (models.squeezenet1_0(), "squeezenet"),
