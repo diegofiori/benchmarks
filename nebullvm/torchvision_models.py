@@ -26,7 +26,7 @@ def optimize_and_run(model, input_shape, save_dir, quantization_ths, from_datalo
     vanilla_time = run_torch_model(model.to(device), input_tensor.to(device))
     with TemporaryDirectory() as tmp_dir:
         if from_dataloader:
-            data = [torch.randn(input_shape[1:]) for _ in range(500)]
+            data = [((torch.randn(input_shape[1:]), ), 0) for _ in range(500)]
             dataloader = DataLoader(data, batch_size=input_shape[0])
             optimized_model = optimize_torch_model(
                 model,
@@ -114,4 +114,4 @@ if __name__ == "__main__":
         model_dir = os.path.join(base_path, model_name)
         if Path(model_dir).exists():
             continue
-        optimize_and_run(model, input_shape, model_dir, quantization_ths)
+        optimize_and_run(model, input_shape, model_dir, quantization_ths, from_data)
