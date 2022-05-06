@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 
 import torch
 from nebullvm import optimize_torch_model
+from torch.utils.data import DataLoader
+
 
 
 def run_torch_model(model, input_tensor, steps=100):
@@ -18,21 +20,32 @@ def run_torch_model(model, input_tensor, steps=100):
     return sum(times) / len(times) * 1000
 
 
-def optimize_and_run(model, input_shape, save_dir, quantization_ths):
+def optimize_and_run(model, input_shape, save_dir, quantization_ths, from_dataloader: bool):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     input_tensor = torch.randn(input_shape)
     vanilla_time = run_torch_model(model.to(device), input_tensor.to(device))
-
     with TemporaryDirectory() as tmp_dir:
-        optimized_model = optimize_torch_model(
-            model,
-            batch_size=input_shape[0],
-            input_sizes=[input_shape[1:]],
-            save_dir=tmp_dir,
-            use_torch_api=False,
-            quantization_ths=quantization_ths,
-            ignore_compilers=["tvm"],
-        )
+        if from_dataloader:
+            data = [torch.randn(input_shape[1:]) for _ in range(500)]
+            dataloader = DataLoader(data, batch_size=input_shape[0])
+            optimized_model = optimize_torch_model(
+                model,
+                save_dir=tmp_dir,
+                use_torch_api=False,
+                quantization_ths=quantization_ths,
+                dataloader=dataloader,
+                ignore_compilers=["tvm"],
+            )
+        else:
+            optimized_model = optimize_torch_model(
+                model,
+                batch_size=input_shape[0],
+                input_sizes=[input_shape[1:]],
+                save_dir=tmp_dir,
+                use_torch_api=False,
+                quantization_ths=quantization_ths,
+                ignore_compilers=["tvm"],
+            )
         optimized_time = run_torch_model(optimized_model, input_tensor)
     time_dict = {
         "vanilla_time": vanilla_time,
@@ -59,9 +72,16 @@ if __name__ == "__main__":
         type=int,
         help="The batch size"
     )
+    parser.add_argument(
+        "--from_data",
+        "-d",
+        action="store_true",
+        help="Flag for optimizing the model from dataset or from metadata."
+    )
     args = parser.parse_args()
     quantization_ths = args.quantization_ths
     bs = args.batch_size or 1
+    from_data = args.from_data or False
     print(f"Quantization: {quantization_ths}")
     input_shape = (bs, 3, 256, 256)
     model_tuples = [
