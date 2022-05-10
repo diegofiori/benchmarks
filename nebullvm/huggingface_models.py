@@ -42,7 +42,7 @@ def optimized_and_run(texts, model, tokenizer, save_dir, quantization_ths):
             save_dir=tmp_dir,
             extra_input_info=extra_input_info,
             use_torch_api=False,
-            quantization_ths=quantization_ths,
+            perf_loss_ths=quantization_ths,
             ignore_compilers=["tvm"],
         )
         optimized_time_long = run_hugginface_model(optimized_model, long_encoded_input)
@@ -77,7 +77,7 @@ def optimized_and_run_static(texts, model, tokenizer, save_dir, quantization_ths
             use_torch_api=False,
             use_static_shape=True,
             tokenizer_args={"truncation": True},
-            quantization_ths=quantization_ths,
+            perf_loss_ths=quantization_ths,
             ignore_compilers=["tvm"],
         )
         optimized_time = run_hugginface_model(optimized_model, encoded_input)

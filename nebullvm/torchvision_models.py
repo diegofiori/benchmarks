@@ -9,7 +9,6 @@ from nebullvm import optimize_torch_model
 from torch.utils.data import DataLoader
 
 
-
 def run_torch_model(model, input_tensor, steps=100):
     times = []
     for _ in range(steps):
@@ -32,7 +31,7 @@ def optimize_and_run(model, input_shape, save_dir, quantization_ths, from_datalo
                 model,
                 save_dir=tmp_dir,
                 use_torch_api=False,
-                quantization_ths=quantization_ths,
+                perf_loss_ths=quantization_ths,
                 dataloader=dataloader,
                 ignore_compilers=["tvm"],
             )
@@ -43,7 +42,7 @@ def optimize_and_run(model, input_shape, save_dir, quantization_ths, from_datalo
                 input_sizes=[input_shape[1:]],
                 save_dir=tmp_dir,
                 use_torch_api=False,
-                quantization_ths=quantization_ths,
+                perf_loss_ths=quantization_ths,
                 ignore_compilers=["tvm"],
             )
         optimized_time = run_torch_model(optimized_model, input_tensor)
