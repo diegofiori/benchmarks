@@ -90,10 +90,14 @@ def initialize_model_and_data(dls, bs):
 def train_model(dl, model, optimizer, cost_fun, max_epochs):
     model.train()
     st = time.time()
+    if torch.cuda.is_available():
+        model.cuda()
     for epoch in range(max_epochs):
         avg_loss = 0
         avg_accuracy = 0
         for x, y in tqdm(dl):
+            if torch.cuda.is_available():
+                x, y = x.cuda(), y.cuda()
             pred = model(x)
             loss = cost_fun(pred, y)
             optimizer.zero_grad()
