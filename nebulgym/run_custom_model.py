@@ -22,7 +22,7 @@ def get_fastai_dataloaders():
     def label_func(f): return f[0].isupper()
 
     dls = ImageDataLoaders.from_name_func(path, files, label_func,
-                                          item_tfms=Resize(224), bs=1)
+                                          item_tfms=Resize(224), bs=1, num_workers=0)
     return dls
 
 
