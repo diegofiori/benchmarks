@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn import Module
 import torch
 
-from nebulgym.annotations.torch_annotations import patch_torch_module, patch_dataset
+from nebulgym.decorators.torch_decorators import accelerate_model, accelerate_dataset
 
 BACKEND = "PYTORCH"
 
@@ -122,7 +122,7 @@ def train_and_save(max_epochs, bs, json_dict):
     json_dict[name] = total_time
 
 
-@patch_dataset(preloaded_data=20, max_memory_size=None)
+@accelerate_dataset(preloaded_data=20, max_memory_size=None)
 class CustomPatchedDataset(Dataset):
     def __init__(self, dl):
         self._dl = dl
@@ -141,7 +141,7 @@ class CustomPatchedDataset(Dataset):
         return len(self._dl)
 
 
-@patch_torch_module(patch_backprop=True, backends=[BACKEND])
+@accelerate_model(patch_backprop=True, backends=[BACKEND])
 class CustomPatchedModel(Module):
     def __init__(self):
         super().__init__()
