@@ -12,7 +12,7 @@ import torch
 
 from nebulgym.decorators.torch_decorators import accelerate_model, accelerate_dataset
 
-BACKEND = "PYTORCH"
+BACKEND = "TORCHSCRIPT"
 
 
 def get_fastai_dataloaders():
