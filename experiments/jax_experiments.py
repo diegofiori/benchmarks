@@ -156,11 +156,11 @@ def recompose_gradients(grads, example_dict, torch_parameters):
     for key in example_dict.keys():
         grad_dict = grads[key]
         if "linear" in key:
-            torch_gradients.append(torch.from_numpy(np.array(grad_dict["w"])).view(next(torch_parameters).shape))
-            torch_gradients.append(torch.from_numpy(np.array(grad_dict["b"])).view(next(torch_parameters).shape))
+            torch_gradients.append(torch.from_numpy(np.array(grad_dict["w"])).reshape(next(torch_parameters).shape))
+            torch_gradients.append(torch.from_numpy(np.array(grad_dict["b"])).reshape(next(torch_parameters).shape))
         elif "batch_norm" in key:
-            torch_gradients.append(torch.from_numpy(np.array(grad_dict["scale"])).view(next(torch_parameters).shape))
-            torch_gradients.append(torch.from_numpy(np.array(grad_dict["offset"])).view(next(torch_parameters).shape))
+            torch_gradients.append(torch.from_numpy(np.array(grad_dict["scale"])).reshape(next(torch_parameters).shape))
+            torch_gradients.append(torch.from_numpy(np.array(grad_dict["offset"])).reshape(next(torch_parameters).shape))
         else:
             raise NotImplementedError()
     return torch_gradients
