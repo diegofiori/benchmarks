@@ -13,6 +13,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+BATCH_SIZE = 8
+
 
 class AvgAndFlatten(Module):
     def __init__(self, avg_dim):
@@ -107,6 +109,7 @@ torch2haiku = {
     AvgAndFlatten: (JaxAvgAndFlatten, extract_params(["avg_dim"], correction_fn=lambda x: x+2)),
     # torch.nn.Sequential: (hk.Sequential, None)
 }
+
 
 def build_haiku_model(model: Module):
     haiku_layers = []
@@ -221,7 +224,7 @@ class MyJAXWrapperModel(torch.nn.Module):
         forward_t = hk.transform_with_state(forward)
         forward_t = hk.without_apply_rng(forward_t)
         rng = jax.random.PRNGKey(42)
-        input_array = np.random.randn(256, 224, 224, 3)
+        input_array = np.random.randn(BATCH_SIZE, 224, 224, 3)
         params, state = forward_t.init(rng, input_array)
         self.params_template = params
         self.state = state
@@ -240,7 +243,7 @@ class MyJAXWrapperModel(torch.nn.Module):
 
 
 def get_data() -> List:
-    return [torch.randn(256, 3, 224, 224) for _ in range(100)]
+    return [torch.randn(BATCH_SIZE, 3, 224, 224) for _ in range(100)]
 
 
 def train_model(model: torch.nn.Module, dataset: List, reshape: bool):
@@ -258,9 +261,37 @@ def train_model(model: torch.nn.Module, dataset: List, reshape: bool):
     print(time.time() - st)
 
 
+def pure_jax_training(torch_model, dataset):
+    new_dataset = [jnp.array(data.transpose(1, 3).numpy()) for data in dataset]
+
+    def loss_fn(inputs):
+        hk_model = build_haiku_model(torch_model)
+        pred = hk_model(inputs)
+        return jnp.mean(pred)
+
+    loss_fn_t = hk.transform_with_state(loss_fn)
+    loss_fn_t = hk.without_apply_rng(loss_fn_t)
+    rng = jax.random.PRNGKey(42)
+    input_array = np.random.randn(BATCH_SIZE, 224, 224, 3)
+    params, state = loss_fn_t.init(rng, input_array)
+
+    def update_rule(param, update):
+        return param - 0.01 * update
+    loss_grad = jax.jit(jax.grad(loss_fn_t.apply, has_aux=True))
+
+    st = time.time()
+    for images in new_dataset:
+        grads, state = loss_grad(params, state, images)
+        params = jax.tree_map(update_rule, params, grads)
+    print(time.time()-st)
+
+
 if __name__ == "__main__":
     model = CustomModel()
+    pure_jax = copy.deepcopy(model)
     jax_model = MyJAXWrapperModel(copy.deepcopy(model))
     dataset = get_data()
     train_model(model, dataset, False)
     train_model(jax_model, dataset, True)
+    # train_model(jax_model, dataset, True)
+    pure_jax_training(pure_jax, dataset)
