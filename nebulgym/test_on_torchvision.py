@@ -25,7 +25,7 @@ def patch_model_class(model_class):
 
 def run_standard_training(model_class: Type[torch.nn.Module], batch_size: int, max_epochs: int, json_dict: Dict):
     dls = get_fastai_dataloaders()
-    ds = CustomDataset(dls.train)
+    ds = CustomPatchedDataset(dls.train)
     dl = DataLoader(ds, batch_size=batch_size)
     model = model_class()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
