@@ -1,17 +1,17 @@
 import json
 import os
 import time
+import types
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import torch
-from nebullvm import optimize_torch_model
-from torch.utils.data import DataLoader
+from nebullvm.api.functions import optimize_model
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 
-def run_torch_model(model, input_tensor, steps=100):
+def run_torch_model(model, input_tensors):
     times = []
-    for _ in range(steps):
+    for input_tensor in input_tensors:
         st = time.time()
         with torch.no_grad():
             _ = model(input_tensor)
@@ -19,40 +19,33 @@ def run_torch_model(model, input_tensor, steps=100):
     return sum(times) / len(times) * 1000
 
 
-def optimize_and_run(model, input_shape, save_dir, quantization_ths, from_dataloader: bool):
+def optimize_and_run(model, input_shape, optimization_type, quantization_ths):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    input_tensor = torch.randn(input_shape)
-    vanilla_time = run_torch_model(model.to(device), input_tensor.to(device))
-    with TemporaryDirectory() as tmp_dir:
-        if from_dataloader:
-            data = [((torch.randn(input_shape[1:]), ), 0) for _ in range(500)]
-            dataloader = DataLoader(data, batch_size=input_shape[0])
-            optimized_model = optimize_torch_model(
-                model,
-                save_dir=tmp_dir,
-                use_torch_api=False,
-                perf_loss_ths=quantization_ths,
-                dataloader=dataloader,
-                ignore_compilers=["tvm"],
-            )
-        else:
-            optimized_model = optimize_torch_model(
-                model,
-                batch_size=input_shape[0],
-                input_sizes=[input_shape[1:]],
-                save_dir=tmp_dir,
-                use_torch_api=False,
-                perf_loss_ths=quantization_ths,
-                ignore_compilers=["tvm"],
-            )
-        optimized_time = run_torch_model(optimized_model, input_tensor)
+    test_tensors = [torch.randn(input_shape).to(device) for _ in range(100)]
+    vanilla_time = run_torch_model(model.to(device), test_tensors)
+    data = [((torch.randn(input_shape), ), 0) for _ in range(500)]
+    optimized_model = optimize_model(
+        model,
+        input_data=data,
+        metric_drop_ths=quantization_ths,
+        metric="numeric_precision",
+        optimization_time=optimization_type,
+        ignore_compilers=["tvm"],
+    )
     time_dict = {
         "vanilla_time": vanilla_time,
-        "optimized_time": optimized_time,
+        "optimized_time": run_torch_model(optimized_model, test_tensors),
     }
-    Path(save_dir).mkdir(exist_ok=True)
-    with open(os.path.join(save_dir, "time_info.json"), "w") as f_out:
-        json.dump(time_dict, f_out)
+    return time_dict
+
+
+def save_ouput_in_dict(dictionary):
+    def wrap(function):
+        def new_function(self, *args, **kwargs):
+            dictionary.update(self._latency_dict)
+            return function(self, *args, **kwargs)
+        return new_function
+    return wrap
 
 
 if __name__ == "__main__":
@@ -72,17 +65,16 @@ if __name__ == "__main__":
         help="The batch size"
     )
     parser.add_argument(
-        "--from_data",
-        "-d",
+        "--use_compression",
+        "-c",
         action="store_true",
-        help="Flag for optimizing the model from dataset or from metadata."
+        help="Flag for optimizing the model using compression techniques."
     )
     args = parser.parse_args()
     quantization_ths = args.quantization_ths
     bs = args.batch_size or 1
-    from_data = args.from_data or False
-    print(f"Quantization: {quantization_ths}")
-    input_shape = (bs, 3, 256, 256)
+    optimization_time = "unconstrained" if args.use_compression else "constrained"
+    input_shape = (bs, 3, 224, 224)
     model_tuples = [
         (models.resnet18(), "resnet18"),
         (models.squeezenet1_0(), "squeezenet"),
@@ -109,8 +101,21 @@ if __name__ == "__main__":
         base_path = "quantization"
     Path(base_path).mkdir(exist_ok=True)
 
+    dictionary = {}
+    FEEDBACK_COLLECTOR.send_feedback = types.MethodType(
+        save_ouput_in_dict(dictionary)(
+            FEEDBACK_COLLECTOR.send_feedback.__func__
+        ), FEEDBACK_COLLECTOR
+    )
     for model, model_name in model_tuples:
         model_dir = os.path.join(base_path, model_name)
         if Path(model_dir).exists():
             continue
-        optimize_and_run(model, input_shape, model_dir, quantization_ths, from_data)
+        time_dict = optimize_and_run(
+            model, input_shape, optimization_time, quantization_ths
+        )
+        time_dict.update(dictionary)
+        Path(model_dir).mkdir(exist_ok=True)
+        with open(Path(model_dir) / "time_info.json", "w") as f_out:
+            json.dump(time_dict, f_out)
+        dictionary.clear()
