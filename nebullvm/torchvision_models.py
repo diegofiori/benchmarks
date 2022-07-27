@@ -11,6 +11,7 @@ from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 def run_torch_model(model, input_tensors):
     times = []
+    model.eval()
     for input_tensor in input_tensors:
         st = time.time()
         with torch.no_grad():
