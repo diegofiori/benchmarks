@@ -149,7 +149,14 @@ def run_openvino():
 
         providers = ["OpenVINOExecutionProvider"]
         ort_model = ort.InferenceSession(
-            onnx_model, sess_options, providers=providers, provider_options=[{"device_type" : "CPU_FP32",}]
+            onnx_model, sess_options, providers=providers, provider_options=[
+                {
+                    "device_type" : "CPU_FP32",
+                    "device_id": "",
+                    "enable_vpu_fast_compile": False,
+                    "num_of_threads": 4,
+                }
+            ]
         )
         # warmup
         for _ in range(10):
