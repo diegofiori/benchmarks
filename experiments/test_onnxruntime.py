@@ -209,15 +209,15 @@ def run_openvino():
         st = time.time()
         for array in arrays:
             _ = optimized_model(array)
-        tensor_rt_time = time.time() - st
+        openvino_time = time.time() - st
         print("Pure OpenVino time: ", tensor_rt_time)
         result_dict[model.__class__.__name__] = {
             "torch": torch_time,
             "ort_rt": ort_time,
             # "base_onnx": onnx_time,
-            "tensor_rt": tensor_rt_time,
+            "openvino": openvino_time,
         }
-    with open("result_cuda.json", "w") as f:
+    with open("result_openvino.json", "w") as f:
         json.dump(result_dict, f)
 
 
