@@ -149,7 +149,7 @@ def run_openvino():
 
         providers = ["OpenVINOExecutionProvider"]
         ort_model = ort.InferenceSession(
-            onnx_model, sess_options, providers=providers
+            onnx_model, sess_options, providers=providers, provider_options=[{"device_type" : "CPU_FP32",}]
         )
         # warmup
         for _ in range(10):
@@ -177,19 +177,19 @@ def run_openvino():
             input_infos=[{"size": (3, 224, 224), "dtype": "float"}],
             output_sizes=get_output_sizes_onnx(onnx_model, [arrays[0]])
         )
-        optimizer = ONNXOptimizer()
-        optimized_model = optimizer.optimize(
-            onnx_model,
-            DeepLearningFramework.NUMPY,
-            model_params,
-            input_tfms=None,
-            quantization_type=None,
-            metric_drop_ths=None,
-        )
-        for array in arrays:
-            _ = optimized_model(array)
-        onnx_time = time.time() - st
-        print("Pure ONNX time: ", onnx_time)
+        # optimizer = ONNXOptimizer()
+        # optimized_model = optimizer.optimize(
+        #     onnx_model,
+        #     DeepLearningFramework.NUMPY,
+        #     model_params,
+        #     input_tfms=None,
+        #     quantization_type=None,
+        #     metric_drop_ths=None,
+        # )
+        # for array in arrays:
+        #     _ = optimized_model(array)
+        # onnx_time = time.time() - st
+        # print("Pure ONNX time: ", onnx_time)
         optimizer = OpenVinoOptimizer()
         optimized_model = optimizer.optimize(
             onnx_model,
@@ -207,7 +207,7 @@ def run_openvino():
         result_dict[model.__class__.__name__] = {
             "torch": torch_time,
             "ort_rt": ort_time,
-            "base_onnx": onnx_time,
+            # "base_onnx": onnx_time,
             "tensor_rt": tensor_rt_time,
         }
     with open("result_cuda.json", "w") as f:
