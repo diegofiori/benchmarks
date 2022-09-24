@@ -76,17 +76,18 @@ def get_data(path_to_data: str):
                                              train_size=None, random_state=52,
                                              shuffle=False, stratify=None)
     train_ds = PoseEstimationDataset(train_imgs, train_labels)
-    train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.train_batch_size)
+    # train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.train_batch_size)
     test_ds = PoseEstimationDataset(test_imgs, test_labels)
     test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.train_batch_size)
-    return train_dl, test_dl
+    return train_ds, test_dl
 
 
-def train_model(model, original_model, train_dls):
+def train_model(model, original_model, train_ds):
     # criterion = torch.nn.CrossEntropyLoss()
     criterion = torch.nn.MSELoss()
-    model_engine, optimizer, _, __ = deepspeed.initialize(
-        args=args, model=model, model_parameters=model.parameters())
+    model_engine, optimizer, train_dls, __ = deepspeed.initialize(
+        args=args, model=model, model_parameters=model.parameters(), training_data=train_ds
+    )
 
     for epoch in range(1, args.epochs + 1):
         print('Current Epoch: ', epoch)
@@ -162,23 +163,24 @@ def export_to_onnx(model, input_tensor, output_file_path):
 
 def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     model = get_hrnet(path_to_hrnet)
-    dl_train, dl_test = get_data(path_to_data)
+    train_ds, dl_test = get_data(path_to_data)
     test_loss_pre_compression = get_test_loss(model, dl_test)
     original_model = copy.deepcopy(model).eval()
     model = init_compression(model, args.deepspeed_config)
-    model = train_model(model, original_model, dl_train)
+    model = train_model(model, original_model, train_ds)
     model = redundancy_clean(model, args.deepspeed_config)
     test_loss_post_compression = get_test_loss(model, dl_test)
-    Path(save_path).mkdir(exist_ok=True, parents=True)
-    model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
-    export_to_onnx(model, dl_test.dataset[0][0], model_exported_path)
-    loss_dict = {
-        "pre_compression": test_loss_pre_compression,
-        "post_compression": test_loss_post_compression
-    }
-    dict_path = os.path.join(save_path, "loss_dict.json")
-    with open(dict_path, "w") as f:
-        json.dump(loss_dict, f)
+    if args.local_rank <= 0:
+        Path(save_path).mkdir(exist_ok=True, parents=True)
+        model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
+        export_to_onnx(model, dl_test.dataset[0][0], model_exported_path)
+        loss_dict = {
+            "pre_compression": test_loss_pre_compression,
+            "post_compression": test_loss_post_compression
+        }
+        dict_path = os.path.join(save_path, "loss_dict.json")
+        with open(dict_path, "w") as f:
+            json.dump(loss_dict, f)
 
 
 if __name__ == "__main__":
@@ -187,6 +189,10 @@ if __name__ == "__main__":
     parser.add_argument("--path_to_model_dir", "-m", help="Path to model lib")
     parser.add_argument("--path_to_data", "-d", help="Path to the data.")
     parser.add_argument("--save_path", "-s", help="Save path")
+    parser.add_argument('--local_rank',
+                        type=int,
+                        default=-1,
+                        help='local rank passed from distributed launcher')
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
     deepspeed.init_distributed()
