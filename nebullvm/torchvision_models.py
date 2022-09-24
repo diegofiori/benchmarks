@@ -23,10 +23,10 @@ def run_torch_model(model, input_tensors):
 def optimize_and_run(model, input_shape, optimization_type, quantization_ths):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     test_tensors = [torch.randn(input_shape).to(device) for _ in range(100)]
-    vanilla_time = run_torch_model(model.to(device), test_tensors)
+    vanilla_time = run_torch_model(model.eval().to(device), test_tensors)
     data = [((torch.randn(input_shape), ), 0) for _ in range(500)]
     optimized_model = optimize_model(
-        model,
+        model.eval(),
         input_data=data,
         metric_drop_ths=quantization_ths,
         metric="numeric_precision",

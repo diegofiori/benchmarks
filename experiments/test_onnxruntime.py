@@ -210,7 +210,7 @@ def run_openvino():
         for array in arrays:
             _ = optimized_model(array)
         openvino_time = time.time() - st
-        print("Pure OpenVino time: ", tensor_rt_time)
+        print("Pure OpenVino time: ", openvino_time)
         result_dict[model.__class__.__name__] = {
             "torch": torch_time,
             "ort_rt": ort_time,
