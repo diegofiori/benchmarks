@@ -23,7 +23,7 @@ def get_hrnet(path_to_hrnet: str):
 
         class Args:
             cfg = os.path.join(path_to_hrnet, "experiments/coco/hrnet/w48_384x288_adam_lr1e-3.yaml")
-            opts = None
+            opts = []
             modelDir = None
             logDir = None
             dataDir = None
