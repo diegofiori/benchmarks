@@ -6,7 +6,7 @@ from pathlib import Path
 
 import deepspeed
 import numpy as np
-import sklearn
+import sklearn.model_selection
 import torch.utils.data
 from deepspeed.compression.compress import init_compression, redundancy_clean
 from tqdm import tqdm
