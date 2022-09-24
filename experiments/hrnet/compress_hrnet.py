@@ -193,6 +193,8 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help='local rank passed from distributed launcher')
+    parser.add_argument("--train_batch_size", "-bs", type=int, default=32, help="Batch Size")
+    parser.add_argument("--epochs", "-e", type=int, default=10, help="Number of epochs")
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
     deepspeed.init_distributed()
