@@ -100,7 +100,7 @@ def train_model(model_engine, original_model, train_dls):
                 with torch.no_grad():
                     orig_pred = original_model(data)
                 output = model_engine(data)
-                loss = criterion(output.view(output.size(0), output.size(1), -1), orig_pred)
+                loss = criterion(output, orig_pred)
                 model_engine.backward(loss)
                 train_loss += loss.item() * target.size()[0]
                 total_num += target.size()[0]
@@ -127,7 +127,7 @@ def get_test_loss(model, dl_test):
                 if half_precision:
                     data = data.half()
             output = model(data)
-            loss = criterion(output, target)
+            loss = criterion(output.view(output.size(0), output.size(1), -1), target)
             test_loss += loss.item() * target.size()[0]
             total_num += target.size()[0]
         test_loss /= total_num
