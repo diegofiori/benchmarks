@@ -122,7 +122,7 @@ def get_test_loss(model, dl_test):
             half_precision = True
         for data, target in dl_test:
             if torch.cuda.is_available():
-                data, target = data.cuda(), target.cuda()
+                data, target = data.cuda().float(), target.cuda()
                 if half_precision:
                     data = data.half()
             output = model(data)
