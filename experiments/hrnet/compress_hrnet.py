@@ -185,7 +185,7 @@ def get_test_loss(model, dl_test):
 def export_to_onnx(model, input_tensor, output_file_path):
     # input_names = [f"input_{i}" for i in range(len(input_tensors))]
     if torch.cuda.is_available():
-        model.cuda()
+        model.cuda().float()
         input_tensor = input_tensor.cuda()
     input_names = ["input"]
     with torch.no_grad():
