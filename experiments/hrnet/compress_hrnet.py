@@ -118,7 +118,7 @@ def get_test_loss(model, dl_test):
     with torch.no_grad():
         model.eval()
         half_precision = False
-        if "cuda" in str(next(model.parameters()).device):
+        if next(model.parameters()).dtype is torch.float16:
             half_precision = True
         for data, target in dl_test:
             if torch.cuda.is_available():
