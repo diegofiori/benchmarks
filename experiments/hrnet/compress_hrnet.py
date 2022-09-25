@@ -162,14 +162,20 @@ def export_to_onnx(model, input_tensor, output_file_path):
 
 
 def main(path_to_hrnet: str, path_to_data: str, save_path: str):
+    deepspeed.init_distributed()
     model = get_hrnet(path_to_hrnet)
     train_ds, dl_test = get_data(path_to_data)
+    print("Model and data ready.")
     test_loss_pre_compression = get_test_loss(model, dl_test)
+    print(f"Loss computed before compression: {test_loss_pre_compression}.")
     original_model = copy.deepcopy(model).eval()
     model = init_compression(model, args.deepspeed_config)
+    print("Model copied and prepared for compression")
     model = train_model(model, original_model, train_ds)
+    print("Knowledge distillation run on using the original model as teacher.")
     model = redundancy_clean(model, args.deepspeed_config)
     test_loss_post_compression = get_test_loss(model, dl_test)
+    print(f"Loss computed post compression: {test_loss_post_compression}.")
     if args.local_rank <= 0:
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
@@ -197,7 +203,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", "-e", type=int, default=10, help="Number of epochs")
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
-    deepspeed.init_distributed()
     main(
         path_to_hrnet=args.path_to_model_dir,
         path_to_data=args.path_to_data,
