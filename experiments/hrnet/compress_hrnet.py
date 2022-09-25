@@ -143,11 +143,11 @@ def train_model(model_engine, original_model, train_dls):
             for batch_idx, (data, target) in enumerate(train_dls):
                 model_engine.train()
                 if torch.cuda.is_available():
-                    data, target = data.cuda().half(), target.cuda()
+                    half_data, data, target = data.cuda().half(), data.cuda(), target.cuda()
                 with torch.no_grad():
                     orig_pred = original_model(data)
-                output = model_engine(data)
-                loss = criterion(output, orig_pred)
+                output = model_engine(half_data)
+                loss = criterion(output, orig_pred.half())
                 model_engine.backward(loss)
                 train_loss += loss.item() * target.size()[0]
                 total_num += target.size()[0]
