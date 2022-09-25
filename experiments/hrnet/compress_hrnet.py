@@ -7,6 +7,7 @@ from pathlib import Path
 import deepspeed
 import numpy as np
 import sklearn.model_selection
+import torch.distributed
 import torch.utils.data
 from deepspeed.compression.compress import init_compression, redundancy_clean
 from tqdm import tqdm
@@ -82,12 +83,9 @@ def get_data(path_to_data: str):
     return train_ds, test_dl
 
 
-def train_model(model, original_model, train_ds):
+def train_model(model_engine, original_model, train_dls):
     # criterion = torch.nn.CrossEntropyLoss()
     criterion = torch.nn.MSELoss()
-    model_engine, optimizer, train_dls, __ = deepspeed.initialize(
-        args=args, model=model, model_parameters=model.parameters(), training_data=train_ds
-    )
 
     for epoch in range(1, args.epochs + 1):
         print('Current Epoch: ', epoch)
@@ -100,7 +98,7 @@ def train_model(model, original_model, train_ds):
                     data, target = data.cuda().half(), target.cuda()
                 with torch.no_grad():
                     orig_pred = original_model(data)
-                output = model(data)
+                output = model_engine(data)
                 loss = criterion(output, orig_pred)
                 model_engine.backward(loss)
                 train_loss += loss.item() * target.size()[0]
@@ -110,17 +108,15 @@ def train_model(model, original_model, train_ds):
                 progressbar.set_postfix(loss=train_loss / total_num)
 
                 progressbar.update(target.size(0))
-    return model
+    return model_engine
 
 
 def get_test_loss(model, dl_test):
     criterion = torch.nn.CrossEntropyLoss()
-    model_engine, optimizer, _, __ = deepspeed.initialize(
-        args=args, model=model, model_parameters=model.parameters())
     test_loss = 0
     total_num = 0
     with torch.no_grad():
-        model_engine.eval()
+        model.eval()
         for data, target in dl_test:
             if torch.cuda.is_available():
                 data, target = data.cuda().half(), target.cuda()
@@ -163,22 +159,29 @@ def export_to_onnx(model, input_tensor, output_file_path):
 
 def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     print("################################")
-    print("Pre model distribution")
+    print("Pre init distribution")
     deepspeed.init_distributed()
     model = get_hrnet(path_to_hrnet)
     train_ds, dl_test = get_data(path_to_data)
     print("Model and data ready.")
-    test_loss_pre_compression = get_test_loss(model, dl_test)
-    print(f"Loss computed before compression: {test_loss_pre_compression}.")
+    if args.local_rank == 0:
+        test_loss_pre_compression = get_test_loss(model, dl_test)
+        print(f"Loss computed before compression: {test_loss_pre_compression}.")
+    torch.distributed.barrier()
     original_model = copy.deepcopy(model).eval()
     model = init_compression(model, args.deepspeed_config)
+    print("Initialize distribution")
+    model_engine, optimizer, train_dls, __ = deepspeed.initialize(
+        args=args, model=model, model_parameters=model.parameters(),
+        training_data=train_ds
+    )
     print("Model copied and prepared for compression")
-    model = train_model(model, original_model, train_ds)
+    model = train_model(model_engine, original_model, train_dls)
     print("Knowledge distillation run on using the original model as teacher.")
     model = redundancy_clean(model, args.deepspeed_config)
     test_loss_post_compression = get_test_loss(model, dl_test)
     print(f"Loss computed post compression: {test_loss_post_compression}.")
-    if args.local_rank <= 0:
+    if args.local_rank == 0:
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
         export_to_onnx(model, dl_test.dataset[0][0], model_exported_path)
