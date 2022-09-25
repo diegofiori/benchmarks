@@ -184,6 +184,9 @@ def get_test_loss(model, dl_test):
 
 def export_to_onnx(model, input_tensor, output_file_path):
     # input_names = [f"input_{i}" for i in range(len(input_tensors))]
+    if torch.cuda.is_available():
+        model.cuda()
+        input_tensor = input_tensor.cuda()
     input_names = ["input"]
     with torch.no_grad():
         outputs = model(input_tensor)
@@ -191,9 +194,6 @@ def export_to_onnx(model, input_tensor, output_file_path):
             output_names = ["output"]
         else:
             output_names = [f"output_{i}" for i in range(len(outputs))]
-    if torch.cuda.is_available():
-        model.cuda()
-        input_tensor = input_tensor.cuda()
     torch.onnx.export(
         model,  # model being run
         input_tensor,  # model input (or a tuple for multiple inputs)
