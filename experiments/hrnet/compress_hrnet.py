@@ -117,9 +117,14 @@ def get_test_loss(model, dl_test):
     total_num = 0
     with torch.no_grad():
         model.eval()
+        half_precision = False
+        if "cuda" in str(next(model.parameters()).device):
+            half_precision = True
         for data, target in dl_test:
             if torch.cuda.is_available():
-                data, target = data.cuda().half(), target.cuda()
+                data, target = data.cuda(), target.cuda()
+                if half_precision:
+                    data = data.half()
             output = model(data)
             loss = criterion(output, target)
             test_loss += loss.item() * target.size()[0]
