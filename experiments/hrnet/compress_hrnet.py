@@ -62,7 +62,7 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         return len(self.images)
 
     def __getitem__(self, item):
-        image = torch.from_numpy(np.load(self.images[item]))
+        image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1)
         label_dict = self.labels[0]
         label = torch.tensor([label_dict[key] for key in self.keys], dtype=torch.int32)
         return image, label
