@@ -238,7 +238,7 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     if args.local_rank == 0:
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
-        export_to_onnx(model, dl_test.dataset[0][0], model_exported_path)
+        export_to_onnx(model, dl_test.dataset[0][0].unsqueeze(0), model_exported_path)
         loss_dict = {
             "pre_compression": test_loss_pre_compression,
             "post_compression": test_loss_post_compression
