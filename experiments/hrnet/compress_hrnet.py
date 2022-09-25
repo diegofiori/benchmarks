@@ -162,6 +162,8 @@ def export_to_onnx(model, input_tensor, output_file_path):
 
 
 def main(path_to_hrnet: str, path_to_data: str, save_path: str):
+    print("################################")
+    print("Pre model distribution")
     deepspeed.init_distributed()
     model = get_hrnet(path_to_hrnet)
     train_ds, dl_test = get_data(path_to_data)
