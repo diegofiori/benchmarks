@@ -58,6 +58,7 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         self.labels = labels
         assert len(self.labels) == len(self.images), "Labels and images must be in the same number"
         self.keys = list(labels[0].keys())
+        self._inner_prod = np.array([np.load(self.images[0]).shape[0] / 4, 1])
 
     def __len__(self):
         return len(self.images)
@@ -65,7 +66,7 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
     def __getitem__(self, item):
         image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1)
         label_dict = self.labels[0]
-        label = torch.tensor([label_dict[key] for key in self.keys], dtype=torch.int32)
+        label = torch.tensor([np.sum((label_dict[key][:-1]/4) * self._inner_prod, axis=-1) for key in self.keys], dtype=torch.int32)
         return image, label
 
 
@@ -99,7 +100,7 @@ def train_model(model_engine, original_model, train_dls):
                 with torch.no_grad():
                     orig_pred = original_model(data)
                 output = model_engine(data)
-                loss = criterion(output, orig_pred)
+                loss = criterion(output.view(output.size(0), output.size(1), -1), orig_pred)
                 model_engine.backward(loss)
                 train_loss += loss.item() * target.size()[0]
                 total_num += target.size()[0]
