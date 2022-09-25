@@ -143,7 +143,7 @@ def train_model(model_engine, original_model, train_dls):
             for batch_idx, (data, target) in enumerate(train_dls):
                 model_engine.train()
                 if torch.cuda.is_available():
-                    half_data, data, target = data.cuda().half(), data.cuda(), target.cuda()
+                    half_data, data, target = data.cuda().half(), data.cuda().float(), target.cuda()
                 with torch.no_grad():
                     orig_pred = original_model(data)
                 output = model_engine(half_data)
