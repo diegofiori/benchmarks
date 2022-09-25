@@ -6,6 +6,7 @@ from pathlib import Path
 
 import deepspeed
 import numpy as np
+import scipy
 import sklearn.model_selection
 import torch.distributed
 import torch.utils.data
@@ -51,6 +52,43 @@ def _read_label(image_path: Path):
     return label_dict
 
 
+def _build_singular_heatmap(coord_x, coord_y, shape, scaling_factor=1):
+    heatmap = torch.zeros(*shape)
+    heatmap[coord_x//scaling_factor, coord_y//scaling_factor] = 1
+    return heatmap
+
+
+class GaussianLayer(torch.nn.Module):
+    def __init__(self):
+        super(GaussianLayer, self).__init__()
+        self.seq = torch.nn.Sequential(
+            torch.nn.ReflectionPad2d(10),
+            torch.nn.Conv2d(17, 17, 21, stride=1, padding=0, bias=None, groups=17)
+        )
+        self.weights_init()
+
+    def forward(self, x):
+        return self.seq(x)
+
+    def weights_init(self):
+        n= np.zeros((21, 21))
+        n[10, 10] = 1
+        k = scipy.ndimage.gaussian_filter(n, sigma=3)
+        for name, f in self.named_parameters():
+            f.data.copy_(torch.from_numpy(k))
+
+
+class HeatmapGenerator:
+    def __init__(self):
+        self._gaussian_filter = GaussianLayer()
+
+    def apply_gaussian_filter(self, input_tensor):
+        with torch.no_grad():
+            input_tensor = input_tensor.float().unsqueeze(0)
+            input_tensor = self._gaussian_filter(input_tensor)
+        return input_tensor[0]
+
+
 class PoseEstimationDataset(torch.utils.data.Dataset):
     def __init__(self, images, labels):
         super().__init__()
@@ -58,7 +96,8 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         self.labels = labels
         assert len(self.labels) == len(self.images), "Labels and images must be in the same number"
         self.keys = list(labels[0].keys())
-        self._inner_prod = np.array([np.load(self.images[0]).shape[0] / 4, 1])
+        self._output_shape = [x // 4 for x in np.load(self.images[0]).shape[:-1]]
+        self._heatmap_generator = HeatmapGenerator()
 
     def __len__(self):
         return len(self.images)
@@ -66,7 +105,15 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
     def __getitem__(self, item):
         image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1)
         label_dict = self.labels[0]
-        label = torch.tensor([np.sum((np.array(label_dict[key][:-1])/4) * self._inner_prod, axis=-1) for key in self.keys], dtype=torch.int32).unsqueeze(-1)
+        label = torch.stack([
+            _build_singular_heatmap(
+                *label_dict[key][:-1],
+                shape=self._output_shape,
+                scaling_factor=4
+            )
+            for key in self.keys
+        ])
+        label = self._heatmap_generator.apply_gaussian_filter(label)
         return image, label
 
 
@@ -113,7 +160,7 @@ def train_model(model_engine, original_model, train_dls):
 
 
 def get_test_loss(model, dl_test):
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.MSELoss()
     test_loss = 0
     total_num = 0
     with torch.no_grad():
@@ -127,7 +174,7 @@ def get_test_loss(model, dl_test):
                 if half_precision:
                     data = data.half()
             output = model(data)
-            loss = criterion(output.view(output.size(0), output.size(1), -1), target)
+            loss = criterion(output, target)
             test_loss += loss.item() * target.size()[0]
             total_num += target.size()[0]
         test_loss /= total_num
