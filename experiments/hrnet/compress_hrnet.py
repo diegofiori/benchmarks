@@ -142,6 +142,7 @@ def train_model(model_engine, original_model, train_dls):
         with tqdm(total=len(train_dls.dataset)) as progressbar:
             for batch_idx, (data, target) in enumerate(train_dls):
                 model_engine.train()
+                original_model.cuda().train()
                 if torch.cuda.is_available():
                     half_data, data, target = data.cuda().half(), data.cuda().float(), target.cuda()
                 with torch.no_grad():
