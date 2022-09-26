@@ -211,6 +211,13 @@ def export_to_onnx(model, input_tensor, output_file_path):
     )
 
 
+def compute_params(model: torch.nn.Module):
+    total = 0
+    for param in model.parameters():
+        total += int(np.prod(param.shape))
+    return total
+
+
 def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     print("################################")
     print("Pre init distribution")
@@ -220,7 +227,9 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     print("Model and data ready.")
     if args.local_rank == 0:
         test_loss_pre_compression = get_test_loss(model, dl_test)
+        params_pre_compression = compute_params(model)
         print(f"Loss computed before compression: {test_loss_pre_compression}.")
+        print(f"Parameters before compression {params_pre_compression}")
     torch.distributed.barrier()
     original_model = copy.deepcopy(model).eval()
     model = init_compression(model, args.deepspeed_config)
@@ -234,7 +243,9 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     print("Knowledge distillation run on using the original model as teacher.")
     model = redundancy_clean(model, args.deepspeed_config)
     test_loss_post_compression = get_test_loss(model, dl_test)
+    params_post_compression = compute_params(model)
     print(f"Loss computed post compression: {test_loss_post_compression}.")
+    print(f"Parameters after compression {params_post_compression}")
     if args.local_rank == 0:
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
