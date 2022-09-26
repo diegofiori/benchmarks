@@ -117,7 +117,7 @@
             },
             "modules": [
               "....conv1",
-              "layer....conv2"
+              "layer1....conv2"
             ],
             "related_modules": [
               ["....conv2", "....bn1"],
