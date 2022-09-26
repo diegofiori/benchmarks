@@ -116,14 +116,12 @@
                 "dense_ratio": 0.5
             },
             "modules": [
-              "layer....conv1",
-              "layer....conv2",
-              "stage....conv1"
+              "....conv1",
+              "....conv2"
             ],
             "related_modules": [
-              ["layer....conv2", "layer....bn1"],
-              ["layer....conv3", "layer....bn2"],
-              ["stage....conv2", "stage....bn1"]
+              ["....conv2", "....bn1"],
+              ["....conv3", "....bn2"]
             ]
           }
         }
