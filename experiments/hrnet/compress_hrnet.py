@@ -52,7 +52,7 @@ def _read_label(image_path: Path):
     return label_dict
 
 
-def _build_singular_heatmap(coord_x, coord_y, shape, scaling_factor=1):
+def _build_singular_heatmap(coord_y, coord_x, shape, scaling_factor=1):
     heatmap = torch.zeros(*shape)
     heatmap[coord_x//scaling_factor, coord_y//scaling_factor] = 1
     return heatmap
