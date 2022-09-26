@@ -103,7 +103,7 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         return len(self.images)
 
     def __getitem__(self, item):
-        image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1)
+        image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1) / 255
         label_dict = self.labels[0]
         label = torch.stack([
             _build_singular_heatmap(
