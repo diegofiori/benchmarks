@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+import types
 from pathlib import Path
 
 import deepspeed
@@ -195,9 +196,18 @@ def fake_dequantize(quantized_model, model):
     return model
 
 
+def fix_model(model):
+    for key, value in model.__dict__.items():
+        if isinstance(value, types.GeneratorType):
+            print("##########!!!!!!!!!!!###########")
+            print(key)
+            model.__dict__[key] = list(value)
+    return model
+
+
 def fine_tune_with_quantization(model, train_dl):
-    fx_model = torch.fx.symbolic_trace(model)
-    q_model = fake_quantize(fx_model)
+    model = fix_model(model)
+    q_model = fake_quantize(model)
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_ft)
     for epoch in range(1, args.ft_epochs + 1):
@@ -220,7 +230,7 @@ def fine_tune_with_quantization(model, train_dl):
                 progressbar.set_postfix(loss=train_loss / total_num)
 
                 progressbar.update(target.size(0))
-    return fake_dequantize(q_model, fx_model)
+    return fake_dequantize(q_model, model)
 
 
 def get_test_loss(model, dl_test):
