@@ -9,6 +9,7 @@ import numpy as np
 import scipy
 import sklearn.model_selection
 import torch.distributed
+import torch.fx
 import torch.utils.data
 from deepspeed.compression.compress import init_compression, redundancy_clean
 from tqdm import tqdm
@@ -194,8 +195,9 @@ def fake_dequantize(quantized_model, model):
     return model
 
 
-def fine_tune_with_quantization(original_model, train_dl):
-    model = fake_quantize(original_model)
+def fine_tune_with_quantization(model, train_dl):
+    fx_model = torch.fx.symbolic_trace(model)
+    q_model = fake_quantize(fx_model)
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_ft)
     for epoch in range(1, args.ft_epochs + 1):
@@ -204,10 +206,10 @@ def fine_tune_with_quantization(original_model, train_dl):
         total_num = 0
         with tqdm(total=len(train_dl.dataset)) as progressbar:
             for batch_idx, (data, target) in enumerate(train_dl):
-                model.train()
+                q_model.train()
                 if torch.cuda.is_available():
                     data, target = data.cuda().float(), target.cuda()
-                output = model(data)
+                output = q_model(data)
                 optimizer.zero_grad(set_to_none=True)
                 loss = criterion(output, target)
                 loss.backward()
@@ -218,7 +220,7 @@ def fine_tune_with_quantization(original_model, train_dl):
                 progressbar.set_postfix(loss=train_loss / total_num)
 
                 progressbar.update(target.size(0))
-    return fake_dequantize(model, original_model)
+    return fake_dequantize(q_model, fx_model)
 
 
 def get_test_loss(model, dl_test):
