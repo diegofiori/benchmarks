@@ -176,13 +176,13 @@ class FakeQuantizationModel(torch.nn.Module):
 
 
 def fake_quantize(model: torch.nn.Module):
-    print(model.state_dict())
-    model = copy.deepcopy(model)
+    print(list(model.state_dict().keys()))
+    # model = copy.deepcopy(model)
     fake_quantized_model = FakeQuantizationModel(model)
     fake_quantized_model.train()
     fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
     fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model)
-    print(model.state_dict())
+    print(list(model.state_dict().keys()))
     return fake_quantized_model
 
 
@@ -196,17 +196,10 @@ def fake_dequantize(quantized_model, model):
     return model
 
 
-def fix_model(model):
-    for key, value in model.__dict__.items():
-        if isinstance(value, types.GeneratorType):
-            print("##########!!!!!!!!!!!###########")
-            print(key)
-            model.__dict__[key] = list(value)
-    return model
-
-
 def fine_tune_with_quantization(model, train_dl):
-    model = fix_model(model)
+    traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288))
+    print("Check traced model")
+    print(traced_model.state_dict().keys())
     q_model = fake_quantize(model)
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_ft)
@@ -230,7 +223,7 @@ def fine_tune_with_quantization(model, train_dl):
                 progressbar.set_postfix(loss=train_loss / total_num)
 
                 progressbar.update(target.size(0))
-    return fake_dequantize(q_model, model)
+    return fake_dequantize(q_model, traced_model)
 
 
 def get_test_loss(model, dl_test):
