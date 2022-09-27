@@ -160,6 +160,67 @@ def train_model(model_engine, original_model, train_dls):
     return model_engine
 
 
+class FakeQuantizationModel(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.quant = torch.quantization.QuantStub()
+        self.model = model
+        self.dequant = torch.quantization.DeQuantStub()
+
+    def forward(self, input_tensor):
+        x = self.quant(input_tensor)
+        x = self.model(x)
+        return self.dequant(x)
+
+
+def fake_quantize(model: torch.nn.Module):
+    print(model.state_dict())
+    model = copy.deepcopy(model)
+    fake_quantized_model = FakeQuantizationModel(model)
+    fake_quantized_model.train()
+    fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+    fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model)
+    print(model.state_dict())
+    return fake_quantized_model
+
+
+def fake_dequantize(quantized_model, model):
+    q_state_dict = quantized_model.state_dict()
+    state_dict = model.state_dict()
+    new_state_dict = {}
+    for (key, _), (__, q_value) in zip(state_dict.items(), q_state_dict.items()):
+        new_state_dict[key] = q_value
+    model.load_state_dict(new_state_dict)
+    return model
+
+
+def fine_tune_with_quantization(original_model, train_dl):
+    model = fake_quantize(original_model)
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_ft)
+    for epoch in range(1, args.ft_epochs + 1):
+        print('Current FT Epoch: ', epoch)
+        train_loss = 0.
+        total_num = 0
+        with tqdm(total=len(train_dl.dataset)) as progressbar:
+            for batch_idx, (data, target) in enumerate(train_dl):
+                model.train()
+                if torch.cuda.is_available():
+                    data, target = data.cuda().float(), target.cuda()
+                output = model(data)
+                optimizer.zero_grad(set_to_none=True)
+                loss = criterion(output, target)
+                loss.backward()
+                train_loss += loss.item() * target.size()[0]
+                total_num += target.size()[0]
+                optimizer.step()
+
+                progressbar.set_postfix(loss=train_loss / total_num)
+
+                progressbar.update(target.size(0))
+    return fake_dequantize(model, original_model)
+
+
 def get_test_loss(model, dl_test):
     criterion = torch.nn.MSELoss()
     test_loss = 0
@@ -247,12 +308,19 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     print(f"Loss computed post compression: {test_loss_post_compression}.")
     print(f"Parameters after compression {params_post_compression}")
     if args.local_rank == 0:
+        print("Starting fine-tuning with QAT")
+        ft_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.train_batch_size)
+        model = fine_tune_with_quantization(model, ft_dl)
+        print("Model fine-tuned with QAT")
+        test_loss_post_qat = get_test_loss(model, dl_test)
+        print(f"Loss computed post QAT: {test_loss_post_qat}.")
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
         export_to_onnx(model, dl_test.dataset[0][0].unsqueeze(0), model_exported_path)
         loss_dict = {
             "pre_compression": test_loss_pre_compression,
-            "post_compression": test_loss_post_compression
+            "post_compression": test_loss_post_compression,
+            "post_qat": test_loss_post_qat
         }
         dict_path = os.path.join(save_path, "loss_dict.json")
         with open(dict_path, "w") as f:
@@ -271,6 +339,8 @@ if __name__ == "__main__":
                         help='local rank passed from distributed launcher')
     parser.add_argument("--train_batch_size", "-bs", type=int, default=32, help="Batch Size")
     parser.add_argument("--epochs", "-e", type=int, default=10, help="Number of epochs")
+    parser.add_argument("--ft_epochs", type=int, default=5, help="Number of epochs for fine tuning")
+    parser.add_argument("--lt_ft", type=float, default=1e-4, help="LR for fine tuning")
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
     main(
