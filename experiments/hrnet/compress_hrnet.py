@@ -197,7 +197,8 @@ def fake_dequantize(quantized_model, model):
 
 
 def fine_tune_with_quantization(model, train_dl):
-    traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288))
+    model = model.float()
+    traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288).cuda())
     print("Check traced model")
     print(traced_model.state_dict().keys())
     q_model = fake_quantize(model)
