@@ -187,11 +187,11 @@ def fake_quantize(model: torch.nn.Module):
 
 
 def fake_dequantize(quantized_model, model):
-    q_state_dict = quantized_model.state_dict()
+    q_state_dict = quantized_model.model.state_dict() # get state dict of the model inside the wrapper
     state_dict = model.state_dict()
     new_state_dict = {}
-    for (key, _), (__, q_value) in zip(state_dict.items(), q_state_dict.items()):
-        new_state_dict[key] = q_value
+    for key in state_dict.keys():
+        new_state_dict[key] = q_state_dict[key]
     model.load_state_dict(new_state_dict)
     return model
 
