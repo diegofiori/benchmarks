@@ -179,7 +179,7 @@ def fake_quantize(model: torch.nn.Module):
     fake_quantized_model = FakeQuantizationModel(model)
     fake_quantized_model.train()
     fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('qnnpack')
-    fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model)
+    fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model, inplace=True)
     return fake_quantized_model
 
 
@@ -197,9 +197,8 @@ def fake_dequantize(quantized_model, model):
 
 def fine_tune_with_quantization(model, train_dl):
     model = model.float()
-    model.train()
     traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288).cuda())
-    q_model = fake_quantize(traced_model)
+    q_model = fake_quantize(model)
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_ft)
     for epoch in range(1, args.ft_epochs + 1):
