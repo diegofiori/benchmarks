@@ -189,6 +189,7 @@ def fake_dequantize(quantized_model, model):
     new_state_dict = {}
     for key in state_dict.keys():
         new_state_dict[key] = q_state_dict[key]
+    print(len(new_state_dict))
     model.load_state_dict(new_state_dict)
     return model
 
@@ -341,7 +342,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_batch_size", "-bs", type=int, default=32, help="Batch Size")
     parser.add_argument("--epochs", "-e", type=int, default=10, help="Number of epochs")
     parser.add_argument("--ft_epochs", type=int, default=5, help="Number of epochs for fine tuning")
-    parser.add_argument("--lr_ft", type=float, default=1e-4, help="LR for fine tuning")
+    parser.add_argument("--lr_ft", type=float, default=1e-3, help="LR for fine tuning")
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
     main(
