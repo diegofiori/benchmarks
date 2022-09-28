@@ -53,41 +53,12 @@ def _read_label(image_path: Path):
     return label_dict
 
 
-def _build_singular_heatmap(coord_y, coord_x, shape, scaling_factor=1):
-    heatmap = torch.zeros(*shape)
+def _build_heatmap_per_layer(coord_y, coord_x, shape, scaling_factor=1):
+    heatmap = np.zeros(shape)
     heatmap[coord_x//scaling_factor, coord_y//scaling_factor] = 1
-    return heatmap
-
-
-class GaussianLayer(torch.nn.Module):
-    def __init__(self):
-        super(GaussianLayer, self).__init__()
-        self.seq = torch.nn.Sequential(
-            torch.nn.ReflectionPad2d(10),
-            torch.nn.Conv2d(17, 17, 21, stride=1, padding=0, bias=None, groups=17)
-        )
-        self.weights_init()
-
-    def forward(self, x):
-        return self.seq(x)
-
-    def weights_init(self):
-        n= np.zeros((21, 21))
-        n[10, 10] = 1
-        k = scipy.ndimage.gaussian_filter(n, sigma=3)
-        for name, f in self.named_parameters():
-            f.data.copy_(torch.from_numpy(k))
-
-
-class HeatmapGenerator:
-    def __init__(self):
-        self._gaussian_filter = GaussianLayer()
-
-    def apply_gaussian_filter(self, input_tensor):
-        with torch.no_grad():
-            input_tensor = input_tensor.float().unsqueeze(0)
-            input_tensor = self._gaussian_filter(input_tensor)
-        return input_tensor[0]
+    heatmap = scipy.ndimage.gaussian_filter(heatmap, sigma=2)
+    heatmap = heatmap / heatmap.max()
+    return torch.from_numpy(heatmap)
 
 
 class PoseEstimationDataset(torch.utils.data.Dataset):
@@ -98,7 +69,6 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         assert len(self.labels) == len(self.images), "Labels and images must be in the same number"
         self.keys = list(labels[0].keys())
         self._output_shape = [x // 4 for x in np.load(self.images[0]).shape[:-1]]
-        self._heatmap_generator = HeatmapGenerator()
 
     def __len__(self):
         return len(self.images)
@@ -107,14 +77,13 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1) / 255
         label_dict = self.labels[0]
         label = torch.stack([
-            _build_singular_heatmap(
+            _build_heatmap_per_layer(
                 *label_dict[key][:-1],
                 shape=self._output_shape,
                 scaling_factor=4
             )
             for key in self.keys
         ])
-        label = self._heatmap_generator.apply_gaussian_filter(label)
         return image, label
 
 
