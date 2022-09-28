@@ -178,7 +178,7 @@ def fake_quantize(model: torch.nn.Module):
     # model = copy.deepcopy(model)
     fake_quantized_model = FakeQuantizationModel(model)
     fake_quantized_model.train()
-    fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+    fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('qnnpack')
     fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model)
     return fake_quantized_model
 
@@ -190,12 +190,13 @@ def fake_dequantize(quantized_model, model):
     for key in state_dict.keys():
         new_state_dict[key] = q_state_dict[key]
     print(len(new_state_dict))
+    print(max(np.abs(value1-value2) for value1, value2 in zip(state_dict.values(), new_state_dict.values())))
     model.load_state_dict(new_state_dict)
     return model
 
 
 def fine_tune_with_quantization(model, train_dl):
-    model = model.float()
+    model = model.float().train()
     traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288).cuda())
     q_model = fake_quantize(traced_model)
     criterion = torch.nn.MSELoss()
