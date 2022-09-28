@@ -74,7 +74,7 @@ class GaussianLayer(torch.nn.Module):
     def weights_init(self):
         n= np.zeros((21, 21))
         n[10, 10] = 1
-        k = scipy.ndimage.gaussian_filter(n, sigma=1)
+        k = scipy.ndimage.gaussian_filter(n, sigma=3)
         for name, f in self.named_parameters():
             f.data.copy_(torch.from_numpy(k))
 
