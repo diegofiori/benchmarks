@@ -190,7 +190,7 @@ def fake_dequantize(quantized_model, model):
     for key in state_dict.keys():
         new_state_dict[key] = q_state_dict[key]
     print(len(new_state_dict))
-    print(max(np.abs(value1-value2) for value1, value2 in zip(state_dict.values(), new_state_dict.values())))
+    # print(max(np.abs(value1-value2) for value1, value2 in zip(state_dict.values(), new_state_dict.values())))
     model.load_state_dict(new_state_dict)
     return model
 
