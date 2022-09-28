@@ -196,7 +196,8 @@ def fake_dequantize(quantized_model, model):
 
 
 def fine_tune_with_quantization(model, train_dl):
-    model = model.float().train()
+    model = model.float()
+    model.train()
     traced_model = torch.jit.trace(model, torch.randn(1, 3, 384, 288).cuda())
     q_model = fake_quantize(traced_model)
     criterion = torch.nn.MSELoss()
