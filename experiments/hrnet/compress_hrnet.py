@@ -58,7 +58,7 @@ def _build_heatmap_per_layer(coord_y, coord_x, shape, scaling_factor=1):
     heatmap[coord_x//scaling_factor, coord_y//scaling_factor] = 1
     heatmap = scipy.ndimage.gaussian_filter(heatmap, sigma=2)
     heatmap = heatmap / heatmap.max()
-    return torch.from_numpy(heatmap)
+    return torch.from_numpy(heatmap).float()
 
 
 class PoseEstimationDataset(torch.utils.data.Dataset):
