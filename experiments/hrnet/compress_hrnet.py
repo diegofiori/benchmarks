@@ -2,7 +2,6 @@ import copy
 import json
 import os
 import sys
-import types
 from pathlib import Path
 
 import deepspeed
@@ -176,13 +175,11 @@ class FakeQuantizationModel(torch.nn.Module):
 
 
 def fake_quantize(model: torch.nn.Module):
-    print(list(model.state_dict().keys()))
     # model = copy.deepcopy(model)
     fake_quantized_model = FakeQuantizationModel(model)
     fake_quantized_model.train()
     fake_quantized_model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
     fake_quantized_model = torch.quantization.prepare_qat(fake_quantized_model)
-    print(list(model.state_dict().keys()))
     return fake_quantized_model
 
 
