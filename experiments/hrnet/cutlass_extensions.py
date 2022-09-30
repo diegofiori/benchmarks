@@ -137,6 +137,9 @@ class CutlassConv2d(torch.nn.Module):
 
         # convert input types in cutlass formats
         np.random.seed(0)
+        type_a_str = type_a
+        type_b_str = type_b
+        type_c_str = type_c
         type_a = getattr(cutlass, type_a)
         type_b = getattr(cutlass, type_b)
         type_c = getattr(cutlass, type_c)
@@ -249,26 +252,26 @@ class CutlassConv2d(torch.nn.Module):
             conv_kind, problem_size
         )
 
-        if type_b != "int8":
+        if type_b_str != "int8":
             tensor_B = torch.ceil(torch.empty(size=(tensor_B_size,),
                                               dtype=getattr(torch,
-                                                            type_b),
+                                                            type_b_str),
                                               device="cuda").uniform_(-8.5,
                                                                       7.5))
         else:
             tensor_B = torch.empty(size=(tensor_B_size,),
-                                   dtype=getattr(torch, type_b),
+                                   dtype=getattr(torch, type_b_str),
                                    device="cuda").uniform_(-2, 2)
 
-        if type_c != "int8":
+        if type_c_str != "int8":
             tensor_C = torch.ceil(torch.empty(size=(tensor_C_size,),
                                               dtype=getattr(torch,
-                                                            type_c),
+                                                            type_c_str),
                                               device="cuda").uniform_(-8.5,
                                                                       7.5))
         else:
             tensor_C = torch.empty(size=(tensor_C_size,),
-                                   dtype=getattr(torch, type_c),
+                                   dtype=getattr(torch, type_c_str),
                                    device="cuda").uniform_(-2, 2)
 
         self.tensor_D_size = tensor_D_size
@@ -287,6 +290,7 @@ class CutlassConv2d(torch.nn.Module):
         self.reduction_operation = reduction_operation
 
     def forward(self, tensor_A):
+        tensor_A = tensor_A.permute(0, 2, 3, 1)
         return cutlass_conv2d(
             tensor_A,
             self.tensor_B,
