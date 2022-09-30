@@ -396,13 +396,18 @@ if __name__ == "__main__":
         import time
         times = []
         cutlass_times = []
+        preds = []
+        cutlass_preds = []
         for tensor in input_data:
             st = time.time()
-            _ = conv2d(tensor)
+            pred = conv2d(tensor)
             times.append(time.time()-st)
+            preds.append(pred)
         for tensor in input_data:
             st = time.time()
-            _ = conv_2d_cutlass(tensor)
+            pred = conv_2d_cutlass(tensor)
             cutlass_times.append(time.time()-st)
+            cutlass_preds.append(pred)
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
+    print(f"Difference: {np.mean(torch.stack([torch.abs(pred1-pred2) for pred1, pred2 in zip(preds, cutlass_preds)]).numpy())}")
