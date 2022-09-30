@@ -366,7 +366,7 @@ class CutlassConv2d(torch.nn.Module):
         )
         print("################ Shape comparison ##################")
         print(self.tensor_B.shape, weight.shape)
-        self.tensor_B = copy.deepcopy(weight)
+        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).view(-1)
         if bias is not None:
             self.tensor_C = copy.deepcopy(bias)
         return self
@@ -393,7 +393,7 @@ if __name__ == "__main__":
             times.append(time.time()-st)
         for tensor in input_data:
             st = time.time()
-            _ = cutlass_conv2d(tensor)
+            _ = conv_2d_cutlass(tensor)
             cutlass_times.append(time.time()-st)
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
