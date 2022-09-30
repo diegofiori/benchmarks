@@ -395,7 +395,7 @@ class CutlassConv2d(torch.nn.Module):
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("--input_shape", default=[1, 3, 224, 224], nargs=4, type=int, help="Input Shape")
+    parser.add_argument("--input_shape", default=[1, 4, 224, 224], nargs=4, type=int, help="Input Shape")
     parser.add_argument("--input_channels", "-ic", type=int, default=3, help="Input channels for Conv2d")
     parser.add_argument("--output_channels", "-oc", type=int, default=8, help="Output channels for Conv2d")
     args = parser.parse_args()
