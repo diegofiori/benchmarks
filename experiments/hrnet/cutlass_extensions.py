@@ -318,7 +318,7 @@ class CutlassConv2d(torch.nn.Module):
             self.split_k_slices,
             self.conv_kind,
             self.reduction_operation,
-        ).view(N, self.out_H, self.out_W, self.out_C).permute(0, 3, 1, 2)
+        ).contiguous().view(N, self.out_H, self.out_W, self.out_C).permute(0, 3, 1, 2)
 
     @classmethod
     def from_conv2d(cls, input_shape: Tuple[int, int, int], conv: torch.nn.Conv2d):
