@@ -75,6 +75,11 @@ class CutlassConv2dFunc(torch.autograd.Function):
                 bias=arguments.bias
             )
 
+        print("################### DEBUG #############################")
+        print("Shapes")
+        print(tensor_A.shape, tensor_B.shape, tensor_C.shape, tensor_D.shape)
+        print("Devices")
+        print(tensor_A.device, tensor_B.device, tensor_C.device, tensor_D.device)
         operation.run(arguments)
 
         if split_k_mode == "Parallel" and split_k_slices > 1:
