@@ -376,6 +376,8 @@ class CutlassConv2d(torch.nn.Module):
             activation_args=[],
         )
         self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
+        with torch.no_grad():
+            assert self.tensor_B.mean() == weight.mean()
         if bias is not None:
             self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
         return self
