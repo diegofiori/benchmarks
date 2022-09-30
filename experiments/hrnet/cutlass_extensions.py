@@ -120,11 +120,11 @@ class CutlassConv2d(torch.nn.Module):
             # "Split K Mode. Serial is used for non-splitK or serial-splitK.\
             #                         Parallel is used for parallel splitK."
             split_k_slices: int,  # default=1 help="Number of split-k partitions. (default 1)"
-            nhwc: List[int, int, int, int],  # input size (NHWC)
-            krsc: List[int, int, int, int],  # filter size (KRSC)
-            pad: List[int, int, int, int],  # "padding (pad_h, _, pad_w, _)"
-            stride: List[int, int],  # stride (stride_h, stride_w)
-            dilation: List[int, int],  # dilation (dilation_h, dilation_w)
+            nhwc: Tuple[int, int, int, int],  # input size (NHWC)
+            krsc: Tuple[int, int, int, int],  # filter size (KRSC)
+            pad: Tuple[int, int, int, int],  # "padding (pad_h, _, pad_w, _)"
+            stride: Tuple[int, int],  # stride (stride_h, stride_w)
+            dilation: Tuple[int, int],  # dilation (dilation_h, dilation_w)
             alpha: float,  # default=1.0, help="alpha"
             beta: float,  # default=0.0, help="beta"
             bias: bool,  # default=False, help="C is bias vector"
