@@ -411,3 +411,9 @@ if __name__ == "__main__":
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
     print(f"Difference: {np.mean(torch.stack([torch.abs((pred1-pred2)/(pred1+1e-7)) for pred1, pred2 in zip(preds, cutlass_preds)]).cpu().numpy())}")
+    for i, (pred1, pred2) in enumerate(mzip(preds, cutlass_preds)):
+        try:
+            assert torch.equal(pred1, pred2)
+        except:
+            assert torch.allclose(pred1, pred2, rtol=1e-2)
+        print(i)
