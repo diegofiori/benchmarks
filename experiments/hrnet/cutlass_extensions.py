@@ -291,7 +291,9 @@ class CutlassConv2d(torch.nn.Module):
         self.reduction_operation = reduction_operation
 
     def forward(self, tensor_A):
-        tensor_A = tensor_A.permute(0, 2, 3, 1)
+        N = tensor_A.shape[0]
+        C = tensor_A.shape[1]
+        tensor_A = tensor_A.permute(0, 2, 3, 1).reshape(-1)
         return cutlass_conv2d(
             tensor_A,
             self.tensor_B,
@@ -307,7 +309,7 @@ class CutlassConv2d(torch.nn.Module):
             self.split_k_slices,
             self.conv_kind,
             self.reduction_operation,
-        )
+        ).view(N, self.out_H, self.out_W, C).permute(0, 3, 1, 2)
 
     @classmethod
     def from_conv2d(cls, input_shape: Tuple[int, int, int], conv: torch.nn.Conv2d):
