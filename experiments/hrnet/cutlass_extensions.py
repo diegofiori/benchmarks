@@ -88,6 +88,14 @@ class CutlassConv2dFunc(torch.autograd.Function):
 cutlass_conv2d = CutlassConv2dFunc.apply
 
 
+def compute_dims(H, W, kernel, pad, dilation, stride):
+    pad_h = pad[0] + pad[1]
+    pad_w = pad[2] + pad[3]
+    out_h = (H + pad_h + dilation[0]*(kernel[0]-1) - 1) // stride[0] + 1
+    out_w = (W + pad_w + dilation[1] * (kernel[1] - 1) - 1) // stride[1] + 1
+    return out_h, out_w
+
+
 class CutlassConv2d(torch.nn.Module):
     def __init__(
             self,
@@ -289,6 +297,7 @@ class CutlassConv2d(torch.nn.Module):
         self.split_k_slices = split_k_slices
         self.conv_kind = conv_kind
         self.reduction_operation = reduction_operation
+        self.out_H, self.out_W = compute_dims(nhwc[1], nhwc[2], krsc[1:3], pad, dilation, stride)
 
     def forward(self, tensor_A):
         N = tensor_A.shape[0]
@@ -368,7 +377,7 @@ class CutlassConv2d(torch.nn.Module):
         )
         print("################ Shape comparison ##################")
         print(self.tensor_B.shape, weight.shape)
-        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1)
+        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda()
         if bias is not None:
             self.tensor_C = copy.deepcopy(bias)
         return self
@@ -382,9 +391,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_channels", "-oc", type=int, default=8, help="Output channels for Conv2d")
     args = parser.parse_args()
     input_shape = args.input_shape
-    conv2d = torch.nn.Conv2d(args.input_channels, args.output_channels, 3)
+    conv2d = torch.nn.Conv2d(args.input_channels, args.output_channels, 3).cuda()
     conv_2d_cutlass = CutlassConv2d.from_conv2d(input_shape, conv2d)
-    input_data = [torch.randn(*input_shape) for _ in range(100)]
+    input_data = [torch.randn(*input_shape).cuda() for _ in range(100)]
     with torch.no_grad():
         import time
         times = []
