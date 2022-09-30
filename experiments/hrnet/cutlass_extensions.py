@@ -75,16 +75,6 @@ class CutlassConv2dFunc(torch.autograd.Function):
                 bias=arguments.bias
             )
 
-        print("################### DEBUG #############################")
-        print("Shapes")
-        print(tensor_A.shape, tensor_B.shape, tensor_C.shape, tensor_D.shape)
-        print("Devices")
-        print(tensor_A.device, tensor_B.device, tensor_C.device, tensor_D.device)
-        print("Pointers - torch")
-        print(tensor_A.data_ptr(), tensor_B.data_ptr(), tensor_C.data_ptr(), tensor_D.data_ptr())
-        print("Pointers")
-        print(arguments.ptr_A, arguments.ptr_B, arguments.ptr_C, arguments.ptr_D,)
-
         operation.run(arguments)
 
         if split_k_mode == "Parallel" and split_k_slices > 1:
@@ -101,8 +91,8 @@ cutlass_conv2d = CutlassConv2dFunc.apply
 def compute_dims(H, W, kernel, pad, dilation, stride):
     pad_h = pad[0] + pad[1]
     pad_w = pad[2] + pad[3]
-    out_h = (H + pad_h + dilation[0]*(kernel[0]-1) - 1) // stride[0] + 1
-    out_w = (W + pad_w + dilation[1] * (kernel[1] - 1) - 1) // stride[1] + 1
+    out_h = (H + pad_h - dilation[0]*(kernel[0]-1) - 1) // stride[0] + 1
+    out_w = (W + pad_w - dilation[1] * (kernel[1] - 1) - 1) // stride[1] + 1
     return out_h, out_w
 
 
