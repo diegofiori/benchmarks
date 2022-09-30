@@ -330,16 +330,16 @@ class CutlassConv2d(torch.nn.Module):
             opcode="TensorOp",
             ############## Set the quantities below depending on the HW  ###################
             threadblock_shape=[128, 128, 8],
-            stages=4,
-            warp_count=[4, 2, 1],
+            stages=3,
+            warp_count=[2, 2, 1],
             compute_capability=80,
             ##################  Finished  #######################
             layout_a="TensorNHWC",
-            alignment_a=1,
+            alignment_a=2,
             layout_b="TensorNHWC",
-            alignment_b=1,
+            alignment_b=2,
             layout_c="TensorNHWC",
-            alignment_c=1,
+            alignment_c=2,
             type_epilogue=data_type,
             epilogue_functor="LinearCombination",  # TODO: understand what it does
             swizzling_functor="IdentitySwizzle1",  # TODO: understand what it does
