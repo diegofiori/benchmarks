@@ -84,7 +84,7 @@ class CutlassConv2dFunc(torch.autograd.Function):
         print(tensor_A.data_ptr(), tensor_B.data_ptr(), tensor_C.data_ptr(), tensor_D.data_ptr())
         print("Pointers")
         print(arguments.ptr_A, arguments.ptr_B, arguments.ptr_C, arguments.ptr_D,)
-        
+
         operation.run(arguments)
 
         if split_k_mode == "Parallel" and split_k_slices > 1:
@@ -312,7 +312,7 @@ class CutlassConv2d(torch.nn.Module):
     def forward(self, tensor_A):
         N = tensor_A.shape[0]
         C = tensor_A.shape[1]
-        tensor_A = tensor_A.permute(0, 2, 3, 1).reshape(-1)
+        tensor_A = tensor_A.permute(0, 2, 3, 1).reshape(-1).contiguous()
         return cutlass_conv2d(
             tensor_A,
             self.tensor_B,
@@ -386,10 +386,9 @@ class CutlassConv2d(torch.nn.Module):
             activation_args=[],
         )
         print("################ Shape comparison ##################")
-        print(self.tensor_B.shape, weight.shape)
-        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda()
+        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
         if bias is not None:
-            self.tensor_C = copy.deepcopy(bias)
+            self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
         return self
 
 
