@@ -326,20 +326,20 @@ class CutlassConv2d(torch.nn.Module):
             type_b=data_type,
             type_c=data_type,
             type_acc=data_type,
-            math_instruction="multiply_add_fast_f32" if data_type=="float32" else "multiply_add",
+            math_instruction="multiply_add", # "multiply_add_fast_f32" if data_type=="float32" else "multiply_add",
             opcode="TensorOp",
             ############## Set the quantities below depending on the HW  ###################
-            threadblock_shape=[128, 128, 8],
+            threadblock_shape=[128, 128, 16],
             stages=3,
             warp_count=[2, 2, 1],
             compute_capability=80,
             ##################  Finished  #######################
             layout_a="TensorNHWC",
-            alignment_a=2,
+            alignment_a=4,
             layout_b="TensorNHWC",
-            alignment_b=2,
+            alignment_b=4,
             layout_c="TensorNHWC",
-            alignment_c=2,
+            alignment_c=4,
             type_epilogue=data_type,
             epilogue_functor="LinearCombination",  # TODO: understand what it does
             swizzling_functor="IdentitySwizzle1",  # TODO: understand what it does
