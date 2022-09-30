@@ -351,11 +351,11 @@ class CutlassConv2d(torch.nn.Module):
             compute_capability=80,
             ##################  Finished  #######################
             layout_a="TensorNHWC",
-            alignment_a=4,
+            alignment_a=1,
             layout_b="TensorNHWC",
-            alignment_b=4,
+            alignment_b=1,
             layout_c="TensorNHWC",
-            alignment_c=4,
+            alignment_c=1,
             type_epilogue=data_type,
             epilogue_functor="LinearCombination",  # TODO: understand what it does
             swizzling_functor="IdentitySwizzle1",  # TODO: understand what it does
