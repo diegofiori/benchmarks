@@ -366,7 +366,7 @@ class CutlassConv2d(torch.nn.Module):
         )
         print("################ Shape comparison ##################")
         print(self.tensor_B.shape, weight.shape)
-        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).view(-1)
+        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1)
         if bias is not None:
             self.tensor_C = copy.deepcopy(bias)
         return self
