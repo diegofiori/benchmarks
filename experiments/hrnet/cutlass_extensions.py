@@ -410,4 +410,4 @@ if __name__ == "__main__":
             cutlass_preds.append(pred)
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
-    print(f"Difference: {np.mean(torch.stack([torch.abs(pred1-pred2) for pred1, pred2 in zip(preds, cutlass_preds)]).numpy())}")
+    print(f"Difference: {np.mean(torch.stack([torch.abs(pred1-pred2) for pred1, pred2 in zip(preds, cutlass_preds)]).cpu().numpy())}")
