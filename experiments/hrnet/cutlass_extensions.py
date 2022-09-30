@@ -137,6 +137,7 @@ class CutlassConv2d(torch.nn.Module):
 
         # convert input types in cutlass formats
         np.random.seed(0)
+        reduction_operation = None
         type_a_str = type_a
         type_b_str = type_b
         type_c_str = type_c
