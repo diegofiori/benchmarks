@@ -298,10 +298,10 @@ class CutlassConv2d(torch.nn.Module):
         self.conv_kind = conv_kind
         self.reduction_operation = reduction_operation
         self.out_H, self.out_W = compute_dims(nhwc[1], nhwc[2], krsc[1:3], pad, dilation, stride)
+        self.out_C = krsc[0]
 
     def forward(self, tensor_A):
         N = tensor_A.shape[0]
-        C = tensor_A.shape[1]
         tensor_A = tensor_A.permute(0, 2, 3, 1).reshape(-1).contiguous()
         return cutlass_conv2d(
             tensor_A,
@@ -318,7 +318,7 @@ class CutlassConv2d(torch.nn.Module):
             self.split_k_slices,
             self.conv_kind,
             self.reduction_operation,
-        ).view(N, self.out_H, self.out_W, C).permute(0, 3, 1, 2)
+        ).view(N, self.out_H, self.out_W, self.out_C).permute(0, 3, 1, 2)
 
     @classmethod
     def from_conv2d(cls, input_shape: Tuple[int, int, int], conv: torch.nn.Conv2d):
@@ -375,7 +375,6 @@ class CutlassConv2d(torch.nn.Module):
             activation_function="identity",  # change with other for further performance
             activation_args=[],
         )
-        print("################ Shape comparison ##################")
         self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
         if bias is not None:
             self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
