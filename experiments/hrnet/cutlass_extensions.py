@@ -278,7 +278,7 @@ class CutlassConv2d(torch.nn.Module):
         self.tensor_D_size = tensor_D_size
         self.tensor_B = tensor_B  # weight
         self.tensor_C = tensor_C  # Bias
-        self.type_c = type_c
+        self.type_c_str = type_c_str
 
         self.operation = operation
         self.problem_size = problem_size
@@ -297,7 +297,7 @@ class CutlassConv2d(torch.nn.Module):
             self.tensor_B,
             self.tensor_C,
             self.tensor_D_size,
-            self.type_c,
+            self.type_c_str,
             self.operation,
             self.problem_size,
             self.alpha,
