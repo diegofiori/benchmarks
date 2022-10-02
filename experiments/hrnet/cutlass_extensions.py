@@ -441,11 +441,17 @@ if __name__ == "__main__":
     from torchvision import models
     parser = ArgumentParser()
     parser.add_argument("--input_shape", default=[1, 3, 224, 224], nargs=4, type=int, help="Input Shape")
+    parser.add_argument("--half", "-h", action="store_true", help="Activate half precision")
     args = parser.parse_args()
     input_shape = args.input_shape
+    half = args.half
     base_model = models.resnet50().eval().cuda()
+    if half:
+        base_model = base_model.half()
     cutlass_model = trace_and_replace(base_model, torch.randn(*input_shape).cuda())
     input_data = [torch.randn(*input_shape).cuda() for _ in range(100)]
+    if half:
+        input_data = [x.half() for x in input_data]
     with torch.no_grad():
         import time
         times = []
