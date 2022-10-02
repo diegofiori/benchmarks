@@ -387,7 +387,9 @@ class CutlassConv2d(torch.nn.Module):
 
 def add_shape_hook(module: torch.nn.Module, shape_list):
     def append_input_shape(module, input_tensor, output_tensor):
-        shape_list.append(input_tensor.shape)
+        assert isinstance(input_tensor, tuple)
+        input_tensor = tuple(t.shape for t in input_tensor)
+        shape_list.append(input_tensor)
 
     def recursively_register_hook(module):
         if isinstance(module, torch.nn.Conv2d):
@@ -415,7 +417,7 @@ def trace_and_replace(module: torch.nn.Module, input_sample: torch.Tensor):
 
 def replace_conv2d_module(module: torch.nn.Module, input_shapes: List[Tuple]):
     if isinstance(module, torch.nn.Conv2d):
-        shape = input_shapes.pop(0)
+        shape = input_shapes.pop(0)[0]  # Just one tensor as input
         if module.in_channels % 2 == 0 and module.out_channels % 2 == 0:
             new_module = CutlassConv2d.from_conv2d(shape, module)
         else:
