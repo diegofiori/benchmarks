@@ -163,6 +163,7 @@ class CutlassConv2d(torch.nn.Module):
         swizzling_functor = getattr(cutlass, swizzling_functor)
         stride_support = getattr(StrideSupport, stride_support)
         conv_kind = getattr(cutlass.conv.Operator, conv_kind)
+        epilogue_functor_str = epilogue_functor
 
         math_inst = MathInstruction(
             instruction_shape, type_a, type_b,
@@ -211,7 +212,7 @@ class CutlassConv2d(torch.nn.Module):
 
         if split_k_mode == "Parallel" and split_k_slices > 1:
             if activation_function == "identity":
-                epilogue_functor_reduction = getattr(pycutlass, epilogue_functor)(
+                epilogue_functor_reduction = getattr(pycutlass, epilogue_functor_str)(
                     C.element, C.alignment, math_inst.element_accumulator,
                     type_epilogue)
             else:
