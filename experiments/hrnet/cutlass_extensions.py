@@ -419,5 +419,5 @@ if __name__ == "__main__":
         try:
             assert torch.equal(pred1, pred2)
         except:
-            assert torch.allclose(pred1, pred2, rtol=1e-2)
-        print(i)
+            print(i)
+            print(torch.abs((pred1-pred2)/(pred1+1e-7)).max())
