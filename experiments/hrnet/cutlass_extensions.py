@@ -375,11 +375,12 @@ class CutlassConv2d(torch.nn.Module):
             activation_function="identity",  # change with other for further performance
             activation_args=[],
         )
-        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
-        with torch.no_grad():
-            assert torch.allclose(self.tensor_B.mean(), weight.mean(), rtol=1e-2)
+        # self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
+        # if bias is not None:
+        #     self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
+        self.tensor_B = torch.ones(self.tensor_B.shape).contiguous().cuda()
         if bias is not None:
-            self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
+            self.tensor_C = torch.ones(self.tensor_C.shape).contiguous().cuda()
         return self
 
 
@@ -410,6 +411,8 @@ if __name__ == "__main__":
             pred = conv_2d_cutlass(tensor)
             cutlass_times.append(time.time()-st)
             cutlass_preds.append(pred)
+            print(tensor.shape, pred.mean(), pred.std())
+            raise ValueError()
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
     print(f"Difference: {np.mean(torch.stack([torch.abs((pred1-pred2)/(pred1+1e-7)) for pred1, pred2 in zip(preds, cutlass_preds)]).cpu().numpy())}")
