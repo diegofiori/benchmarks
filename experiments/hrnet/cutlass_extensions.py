@@ -370,17 +370,18 @@ class CutlassConv2d(torch.nn.Module):
             stride=stride,
             dilation=dilation,
             alpha=1.0,
-            beta=0.0,
+            # beta=0.0,
+            beta=1.0,
             bias=bias is not None,
             activation_function="identity",  # change with other for further performance
             activation_args=[],
         )
-        # self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
-        # if bias is not None:
-        #     self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
-        self.tensor_B = torch.zeros(self.tensor_B.shape).contiguous().cuda()
+        self.tensor_B = copy.deepcopy(weight).permute(0, 2, 3, 1).reshape(-1).cuda().contiguous()
         if bias is not None:
-            self.tensor_C = torch.zeros(self.tensor_C.shape).contiguous().cuda()
+            self.tensor_C = copy.deepcopy(bias).cuda().contiguous()
+        # self.tensor_B = torch.zeros(self.tensor_B.shape).contiguous().cuda()
+        # if bias is not None:
+        #     self.tensor_C = torch.zeros(self.tensor_C.shape).contiguous().cuda()
         return self
 
 
