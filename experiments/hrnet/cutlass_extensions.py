@@ -341,7 +341,7 @@ class CutlassConv2d(torch.nn.Module):
             type_a=data_type,
             type_b=data_type,
             type_c=data_type,
-            type_acc=data_type,
+            type_acc="float32",
             math_instruction="multiply_add", # "multiply_add_fast_f32" if data_type=="float32" else "multiply_add",
             opcode="TensorOp",
             ############## Set the quantities below depending on the HW  ###################
