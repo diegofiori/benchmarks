@@ -420,4 +420,6 @@ if __name__ == "__main__":
             assert torch.equal(pred1, pred2)
         except:
             print(i)
-            print(torch.abs((pred1-pred2)/(pred1+1e-7)).max())
+            err = torch.abs((pred1-pred2)/(pred1+1e-7))
+            arg_max = err.reshape(-1).argmax()
+            print(err.max(), err.mean(), pred1.reshape(-1)[arg_max], pred2.reshape(-1)[arg_max])
