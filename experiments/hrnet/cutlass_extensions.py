@@ -418,6 +418,8 @@ def trace_and_replace(module: torch.nn.Module, input_sample: torch.Tensor):
 def replace_conv2d_module(module: torch.nn.Module, input_shapes: List[Tuple]):
     if isinstance(module, torch.nn.Conv2d):
         shape = input_shapes.pop(0)[0]  # Just one tensor as input
+        print("####### Conv2d layer #######")
+        print(module.in_channels, module.out_channels)
         if module.in_channels % 2 == 0 and module.out_channels % 2 == 0:
             new_module = CutlassConv2d.from_conv2d(shape, module)
         else:
