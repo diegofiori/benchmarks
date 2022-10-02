@@ -412,8 +412,6 @@ if __name__ == "__main__":
             pred = conv_2d_cutlass(tensor)
             cutlass_times.append(time.time()-st)
             cutlass_preds.append(pred)
-            print(tensor.shape, pred.mean(), pred.std())
-            raise ValueError()
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
     print(f"Difference: {np.mean(torch.stack([torch.abs((pred1-pred2)/(pred1+1e-7)) for pred1, pred2 in zip(preds, cutlass_preds)]).cpu().numpy())}")
