@@ -446,9 +446,11 @@ if __name__ == "__main__":
     input_shape = args.input_shape
     half = args.half
     base_model = models.resnet50().eval().cuda()
+    input_sample = torch.randn(*input_shape).cuda()
     if half:
         base_model = base_model.half()
-    cutlass_model = trace_and_replace(base_model, torch.randn(*input_shape).cuda())
+        input_sample = input_sample.half()
+    cutlass_model = trace_and_replace(base_model, input_sample)
     input_data = [torch.randn(*input_shape).cuda() for _ in range(100)]
     if half:
         input_data = [x.half() for x in input_data]
