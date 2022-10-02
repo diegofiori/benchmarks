@@ -441,8 +441,8 @@ if __name__ == "__main__":
     parser.add_argument("--input_shape", default=[1, 3, 224, 224], nargs=4, type=int, help="Input Shape")
     args = parser.parse_args()
     input_shape = args.input_shape
-    base_model = models.resnet50()
-    cutlass_model = trace_and_replace(base_model, torch.randn(*input_shape))
+    base_model = models.resnet50().eval().cuda()
+    cutlass_model = trace_and_replace(base_model, torch.randn(*input_shape).cuda())
     input_data = [torch.randn(*input_shape).cuda() for _ in range(100)]
     with torch.no_grad():
         import time
