@@ -362,8 +362,8 @@ class CutlassConv2d(torch.nn.Module):
             conv_kind="fprop",
             stride_support="Strided" if np.prod(conv.stride)>1 else "Unity",
             iterator_algorithm="analytic",  # Try with other configurations
-            split_k_mode="Serial",
-            split_k_slices=1,
+            split_k_mode="Serial" if krsc[0] <= 32 else "Parallel",
+            split_k_slices=1 if krsc[0] <= 32 else (krsc[0] // 32) + 1,
             nhwc=input_shape,
             krsc=krsc,
             pad=pad,
