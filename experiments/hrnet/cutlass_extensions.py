@@ -385,16 +385,62 @@ class CutlassConv2d(torch.nn.Module):
         return self
 
 
+def add_shape_hook(module: torch.nn.Module, shape_list):
+    def append_input_shape(module, input_tensor, output_tensor):
+        shape_list.append(input_tensor.shape)
+
+    def recursively_register_hook(module):
+        if isinstance(module, torch.nn.Conv2d):
+            module.register_forward_hook(append_input_shape)
+        else:
+            named_children = list(module.named_children())
+            if len(named_children) > 0:
+                for name, submodule in named_children:
+                    recursively_register_hook(submodule)
+
+    recursively_register_hook(module)
+
+
+def trace_and_replace(module: torch.nn.Module, input_sample: torch.Tensor):
+    new_module = copy.deepcopy(module)
+    shape_list = []
+    add_shape_hook(new_module, shape_list)
+    with torch.no_grad():
+        _ = new_module(input_sample)
+    print(f"Number of conv2d layers: {len(shape_list)}")
+    new_module = copy.deepcopy(module)
+    new_module = replace_conv2d_module(new_module, shape_list)
+    return new_module
+
+
+def replace_conv2d_module(module: torch.nn.Module, input_shapes: List[Tuple]):
+    if isinstance(module, torch.nn.Conv2d):
+        shape = input_shapes.pop(0)
+        if module.in_channels % 2 == 0 and module.out_channels % 2 == 0:
+            new_module = CutlassConv2d.from_conv2d(shape, module)
+        else:
+            new_module = module
+    else:
+        named_children = list(module.named_children())
+        if len(named_children) > 0:
+            for name, submodule in named_children:
+                new_submodule = replace_conv2d_module(submodule, input_shapes)
+                if new_submodule is not module:
+                    module._modules[name] = new_submodule
+
+        new_module = module
+    return new_module
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
+    from torchvision import models
     parser = ArgumentParser()
-    parser.add_argument("--input_shape", default=[1, 4, 224, 224], nargs=4, type=int, help="Input Shape")
-    parser.add_argument("--input_channels", "-ic", type=int, default=4, help="Input channels for Conv2d")
-    parser.add_argument("--output_channels", "-oc", type=int, default=8, help="Output channels for Conv2d")
+    parser.add_argument("--input_shape", default=[1, 3, 224, 224], nargs=4, type=int, help="Input Shape")
     args = parser.parse_args()
     input_shape = args.input_shape
-    conv2d = torch.nn.Conv2d(args.input_channels, args.output_channels, 3).cuda()
-    conv_2d_cutlass = CutlassConv2d.from_conv2d(input_shape, conv2d)
+    base_model = models.resnet50()
+    cutlass_model = trace_and_replace(base_model, torch.randn(*input_shape))
     input_data = [torch.randn(*input_shape).cuda() for _ in range(100)]
     with torch.no_grad():
         import time
@@ -404,22 +450,22 @@ if __name__ == "__main__":
         cutlass_preds = []
         for tensor in input_data:
             st = time.time()
-            pred = conv2d(tensor)
+            pred = base_model(tensor)
             times.append(time.time()-st)
             preds.append(pred)
         for tensor in input_data:
             st = time.time()
-            pred = conv_2d_cutlass(tensor)
+            pred = cutlass_model(tensor)
             cutlass_times.append(time.time()-st)
             cutlass_preds.append(pred)
     print("##################### Final Results ####################")
     print(f"Torch: {float(np.mean(times))}\nCutlass: {float(np.mean(cutlass_times))}")
     print(f"Difference: {np.mean(torch.stack([torch.abs((pred1-pred2)/(pred1+1e-7)) for pred1, pred2 in zip(preds, cutlass_preds)]).cpu().numpy())}")
-    for i, (pred1, pred2) in enumerate(zip(preds, cutlass_preds)):
-        try:
-            assert torch.equal(pred1, pred2)
-        except:
-            print(i)
-            err = torch.abs((pred1-pred2)/(pred1+1e-7))
-            arg_max = err.reshape(-1).argmax()
-            print(err.max(), err.mean(), pred1.reshape(-1)[arg_max], pred2.reshape(-1)[arg_max])
+    # for i, (pred1, pred2) in enumerate(zip(preds, cutlass_preds)):
+    #     try:
+    #         assert torch.equal(pred1, pred2)
+    #     except:
+    #         print(i)
+    #         err = torch.abs((pred1-pred2)/(pred1+1e-7))
+    #         arg_max = err.reshape(-1).argmax()
+    #         print(err.max(), err.mean(), pred1.reshape(-1)[arg_max], pred2.reshape(-1)[arg_max])
