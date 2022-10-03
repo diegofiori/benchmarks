@@ -1,4 +1,5 @@
 import copy
+import time
 from typing import Tuple, List, Any
 
 import torch
@@ -479,7 +480,6 @@ if __name__ == "__main__":
     if half:
         input_data = [x.half() for x in input_data]
     with torch.no_grad():
-        import time
         times = []
         cutlass_times = []
         preds = []
