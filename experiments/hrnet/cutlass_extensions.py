@@ -347,24 +347,24 @@ class CutlassConv2d(torch.nn.Module):
             opcode="TensorOp",
             ############## Set the quantities below depending on the HW  ###################
             threadblock_shape=[128, 128, 16],
-            stages=3,
-            warp_count=[2, 2, 1],
+            stages=4,
+            warp_count=[4, 4, 2],
             compute_capability=80,
             ##################  Finished  #######################
             layout_a="TensorNHWC",
-            alignment_a=1,
+            alignment_a=4 if data_type == "float32" else 2,
             layout_b="TensorNHWC",
-            alignment_b=1,
+            alignment_b=4 if data_type == "float32" else 2,
             layout_c="TensorNHWC",
-            alignment_c=1,
+            alignment_c=4 if data_type == "float32" else 2,
             type_epilogue=data_type,
             epilogue_functor="LinearCombination",  # TODO: understand what it does
             swizzling_functor="IdentitySwizzle1",  # TODO: understand what it does
             conv_kind="fprop",
             stride_support="Strided" if np.prod(conv.stride)>1 else "Unity",
             iterator_algorithm="analytic",  # Try with other configurations
-            split_k_mode="Serial" if krsc[0] <= 32 else "Parallel",
-            split_k_slices=1 if krsc[0] <= 32 else (krsc[0] // 32) + 1,
+            split_k_mode="Serial",
+            split_k_slices=1,  # to be changed accordingly to dims that impact the k dimension in the ImplicitGemm
             nhwc=input_shape,
             krsc=krsc,
             pad=pad,
