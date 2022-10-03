@@ -416,13 +416,34 @@ def trace_and_replace(module: torch.nn.Module, input_sample: torch.Tensor):
     return new_module
 
 
+def run_timed_experiment(layer, activations):
+    running_time_list = []
+    with torch.no_grad():
+        for input_tensor in activations:
+            starting_time = time.time()
+            _ = layer(input_tensor)
+            running_time_list.append(time.time() - starting_time)
+    return sum(running_time_list) / len(activations)
+
+
 def replace_conv2d_module(module: torch.nn.Module, input_shapes: List[Tuple]):
     if isinstance(module, torch.nn.Conv2d):
         shape = input_shapes.pop(0)[0]  # Just one tensor as input
-        print("####### Conv2d layer #######")
-        print(module.in_channels, module.out_channels)
+        if args.verbose:
+            print("####### Conv2d layer #######")
+            print(module.in_channels, module.out_channels)
+
         if module.in_channels % 2 == 0 and module.out_channels % 2 == 0:
             new_module = CutlassConv2d.from_conv2d(shape, module)
+            device = module.weight.device
+            activations = [torch.randn(*shape).to(device) for _ in range(args.experiment_replicas)]
+            new_module_runtime = run_timed_experiment(new_module, activations)
+            base_module_runtime = run_timed_experiment(module, activations)
+            if new_module_runtime > base_module_runtime:
+                new_module = module
+            if args.verbose:
+                print("######## Runtimes ##########")
+                print(f"Base: {base_module_runtime}\nCutlass: {new_module_runtime}")
         else:
             new_module = module
     else:
@@ -443,6 +464,8 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--input_shape", default=[1, 3, 224, 224], nargs=4, type=int, help="Input Shape")
     parser.add_argument("--half", action="store_true", help="Activate half precision")
+    parser.add_argument("--verbose", action="store_true", help="Verbose")
+    parser.add_argument("--experiment_replicas", "-er", type=int, default=100, help="Number of times the experiments must be run for getting statistics.")
     args = parser.parse_args()
     input_shape = args.input_shape
     half = args.half
