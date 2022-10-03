@@ -348,7 +348,7 @@ class CutlassConv2d(torch.nn.Module):
             ############## Set the quantities below depending on the HW  ###################
             threadblock_shape=[128, 128, 16],
             stages=4,
-            warp_count=[4, 4, 2],
+            warp_count=[2, 2, 1],
             compute_capability=80,
             ##################  Finished  #######################
             layout_a="TensorNHWC",
