@@ -302,7 +302,7 @@ class CutlassConv2d(torch.nn.Module):
         self.out_C = krsc[0]
 
     def forward(self, tensor_A):
-        # N = tensor_A.shape[0]
+        N = tensor_A.shape[0]
         tensor_A = tensor_A.permute(0, 2, 3, 1)  # .reshape(-1).contiguous()
         return cutlass_conv2d(
             tensor_A,
