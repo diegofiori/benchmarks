@@ -62,13 +62,14 @@ def _build_heatmap_per_layer(coord_y, coord_x, shape, scaling_factor=1):
 
 
 class PoseEstimationDataset(torch.utils.data.Dataset):
-    def __init__(self, images, labels):
+    def __init__(self, images, labels, return_keypoint_position=False):
         super().__init__()
         self.images = images
         self.labels = labels
         assert len(self.labels) == len(self.images), "Labels and images must be in the same number"
         self.keys = list(labels[0].keys())
         self._output_shape = [x // 4 for x in np.load(self.images[0]).shape[:-1]]
+        self.return_keypoint_position = return_keypoint_position
 
     def __len__(self):
         return len(self.images)
@@ -84,7 +85,42 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
             )
             for key in self.keys
         ])
+        if self.return_keypoint_position:
+            keypoint_pos = torch.stack([torch.tensor(label_dict[key][:-1]) for key in self.keys])
+            return image, label, keypoint_pos
         return image, label
+
+
+def get_pose_point(prediction_logits: torch.Tensor):
+    # prediction_logits has shape N, K, H, W
+    #  this means that we need to have a final tensor with shapes N, K, 2
+    vals, h_idx = torch.max(prediction_logits, dim=2)
+    w_idx = torch.argmax(vals, dim=-1)
+    print(w_idx.shape, h_idx.shape)
+    h_idx = h_idx.take(w_idx)
+    print(h_idx.shape)
+    return torch.cat([h_idx.unsqueeze(-1), w_idx.unsqueeze(-1)], dim=-1)
+
+
+@torch.no_grad()
+def compute_pck_metric(prediction, label, tau=0.5):
+    pose_point_pred = get_pose_point(prediction)
+    torso_dims = torch.norm(label[:, 1] - label[:, 11], dim=-1)
+    distance = torch.norm(pose_point_pred-label, dim=-1)
+    return torch.mean((torch.less_equal(distance, torso_dims*tau)) * 1.)
+
+
+K_VEC = torch.tensor([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62,.62, 1.07, 1.07, .87, .87, .89, .89])/10.0
+
+
+@torch.no_grad()
+def compute_oks_metric(prediction, label):
+    pose_point_pred = get_pose_point(prediction)
+    distance = torch.norm(pose_point_pred - label, dim=-1)
+    k_vec = K_VEC.to(prediction.device)
+    body_area = torch.prod(label.max(dim=1)[0] - label.min(dim=1)[0], dim=-1).unsqueeze(-1)
+    exponent = torch.exp(-1 * distance**2 / (2*body_area*k_vec**2))
+    return torch.mean(exponent)
 
 
 def get_data(path_to_data: str):
@@ -96,7 +132,7 @@ def get_data(path_to_data: str):
                                              shuffle=False, stratify=None)
     train_ds = PoseEstimationDataset(train_imgs, train_labels)
     # train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.train_batch_size)
-    test_ds = PoseEstimationDataset(test_imgs, test_labels)
+    test_ds = PoseEstimationDataset(test_imgs, test_labels, True)
     test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.train_batch_size)
     return train_ds, test_dl
 
@@ -197,22 +233,29 @@ def get_test_loss(model, dl_test):
     criterion = torch.nn.MSELoss()
     test_loss = 0
     total_num = 0
+    oks_val = 0
+    pck_val = 0
     with torch.no_grad():
         model.eval()
         half_precision = False
         if next(model.parameters()).dtype is torch.float16:
             half_precision = True
-        for data, target in dl_test:
+        for data, target, keypoint_pos in dl_test:
             if torch.cuda.is_available():
                 data, target = data.cuda().float(), target.cuda()
+                keypoint_pos = keypoint_pos.cuda()
                 if half_precision:
                     data = data.half()
             output = model(data)
             loss = criterion(output, target)
+            oks_val += compute_oks_metric(output, keypoint_pos, 0.2).item() * target.size()[0]
+            pck_val += compute_pck_metric(output, keypoint_pos).item() * target.size()[0]
             test_loss += loss.item() * target.size()[0]
             total_num += target.size()[0]
         test_loss /= total_num
-    return test_loss
+        oks_val /= total_num
+        pck_val /= total_num
+    return test_loss, oks_val, pck_val
 
 
 def export_to_onnx(model, input_tensor, output_file_path):
@@ -259,9 +302,11 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     train_ds, dl_test = get_data(path_to_data)
     print("Model and data ready.")
     if args.local_rank == 0:
-        test_loss_pre_compression = get_test_loss(model, dl_test)
+        test_loss_bc, oks_bc, pck_bc = get_test_loss(model, dl_test)
         params_pre_compression = compute_params(model)
-        print(f"Loss computed before compression: {test_loss_pre_compression}.")
+        print(f"Loss computed before compression: {test_loss_bc}.")
+        print(f"OKS metric value before compression: {oks_bc}")
+        print(f"PCK0.2 metric value before compression: {pck_bc}")
         print(f"Parameters before compression {params_pre_compression}")
     torch.distributed.barrier()
     original_model = copy.deepcopy(model).eval()
@@ -275,24 +320,34 @@ def main(path_to_hrnet: str, path_to_data: str, save_path: str):
     model = train_model(model_engine, original_model, train_dls)
     print("Knowledge distillation run on using the original model as teacher.")
     model = redundancy_clean(model, args.deepspeed_config)
-    test_loss_post_compression = get_test_loss(model, dl_test)
+    test_loss_ac, oks_ac, pck_ac = get_test_loss(model, dl_test)
     params_post_compression = compute_params(model)
-    print(f"Loss computed post compression: {test_loss_post_compression}.")
+    print(f"Loss computed post compression: {test_loss_ac}.")
+    print(f"OKS metric value after compression: {oks_ac}")
+    print(f"PCK0.2 metric value after compression: {pck_ac}")
     print(f"Parameters after compression {params_post_compression}")
     if args.local_rank == 0:
         print("Starting fine-tuning with QAT")
         ft_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.train_batch_size)
         model = fine_tune_with_quantization(model, ft_dl)
         print("Model fine-tuned with QAT")
-        test_loss_post_qat = get_test_loss(model, dl_test)
-        print(f"Loss computed post QAT: {test_loss_post_qat}.")
+        test_loss_pqat, oks_pqat, pck_pqat = get_test_loss(model, dl_test)
+        print(f"Loss computed post QAT: {test_loss_pqat}.")
+        print(f"OKS metric value post QAT: {oks_pqat}")
+        print(f"PCK0.2 metric value post QAT: {pck_pqat}")
         Path(save_path).mkdir(exist_ok=True, parents=True)
         model_exported_path = os.path.join(save_path, "compressed_hrnet.onnx")
         export_to_onnx(model, dl_test.dataset[0][0].unsqueeze(0), model_exported_path)
         loss_dict = {
-            "pre_compression": test_loss_pre_compression,
-            "post_compression": test_loss_post_compression,
-            "post_qat": test_loss_post_qat
+            "loss_pre_compression": test_loss_bc,
+            "loss_post_compression": test_loss_ac,
+            "loss_post_qat": test_loss_pqat,
+            "okc_pre_compression": oks_bc,
+            "okc_post_compression": oks_ac,
+            "okc_post_qat": oks_pqat,
+            "pck_pre_compression": pck_bc,
+            "pck_post_compression": pck_ac,
+            "pck_post_qat": pck_pqat,
         }
         dict_path = os.path.join(save_path, "loss_dict.json")
         with open(dict_path, "w") as f:
