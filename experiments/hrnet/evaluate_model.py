@@ -63,9 +63,14 @@ def evaluate_model_performance(
         original_oks_list.append(original_oks)
 
         # Optimized model
+        # model built using the ONNX interface
+        input_tensor = input_tensor.cpu().numpy()
         st = time.time()
-        optimized_pred = optimized_model(input_tensor)
+        optimized_pred = optimized_model(input_tensor)[0]
         optimized_latencies.append(time.time() - st)
+        optimized_pred = torch.from_numpy(optimized_pred)
+        if torch.cuda.is_available():
+            optimized_pred = optimized_pred.cuda()
         optimized_loss = float(loss_fn(optimized_pred, heatmap).cpu())
         optimized_pck = float(compute_pck_metric(optimized_pred, keypoint, 0.2).cpu())
         optimized_oks = float(compute_oks_metric(optimized_pred, keypoint).cpu())
