@@ -90,16 +90,14 @@ def get_pose_point(prediction_logits: torch.Tensor):
     #  this means that we need to have a final tensor with shapes N, K, 2
     vals, h_idx = torch.max(prediction_logits, dim=2)
     w_idx = torch.argmax(vals, dim=-1)
-    print(w_idx.shape, h_idx.shape)
     h_idx = h_idx.take(w_idx)
-    print(h_idx.shape)
-    return torch.cat([h_idx.unsqueeze(-1), w_idx.unsqueeze(-1)], dim=-1)
+    return torch.cat([w_idx.unsqueeze(-1), h_idx.unsqueeze(-1)], dim=-1)
 
 
 @torch.no_grad()
 def compute_pck_metric(prediction, label, tau=0.5):
     pose_point_pred = get_pose_point(prediction).float()
-    label = label.float()
+    label = label.float() / 4
     torso_dims = torch.norm(label[:, 1] - label[:, 11], dim=-1)
     print(f"torso dim: {torso_dims}")
     distance = torch.norm(pose_point_pred-label, dim=-1)
@@ -113,7 +111,7 @@ K_VEC = torch.tensor([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.0
 @torch.no_grad()
 def compute_oks_metric(prediction, label):
     pose_point_pred = get_pose_point(prediction).float()
-    label = label.float()
+    label = label.float() / 4
     distance = torch.norm(pose_point_pred - label, dim=-1)
     k_vec = K_VEC.to(prediction.device)
     body_area = torch.prod(label.max(dim=1)[0] - label.min(dim=1)[0], dim=-1).unsqueeze(-1)
