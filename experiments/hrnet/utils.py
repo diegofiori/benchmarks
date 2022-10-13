@@ -91,7 +91,7 @@ def get_pose_point(prediction_logits: torch.Tensor):
     vals, h_idx = torch.max(prediction_logits, dim=2)
     w_idx = torch.argmax(vals, dim=-1)
     h_idx = h_idx.take(w_idx)
-    return torch.cat([w_idx.unsqueeze(-1), h_idx.unsqueeze(-1)], dim=-1)
+    return torch.cat([h_idx.unsqueeze(-1), w_idx.unsqueeze(-1)], dim=-1)
 
 
 @torch.no_grad()
