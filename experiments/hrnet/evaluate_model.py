@@ -107,7 +107,7 @@ def evaluate_model_performance(
         },
     }
     if save_path is not None:
-        with open(save_path / "result_evaluation.json", "r") as f:
+        with open(save_path / "result_evaluation.json", "w") as f:
             json.dump(result_dict, f)
     return result_dict
 
