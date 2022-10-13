@@ -15,7 +15,6 @@ from utils import read_label, PoseEstimationDataset, compute_pck_metric, \
 def _load_test_data(data_path: Path):
     img_list = list(data_path.glob("*.npy"))
     img_list.sort()
-    print(img_list)
     label_list = [read_label(img_path) for img_path in img_list]
     ds = PoseEstimationDataset(img_list, label_list, True)
     print(ds.keys)
@@ -86,6 +85,7 @@ def evaluate_model_performance(
             heatmap_max_loss = heatmap.cpu().numpy()[0]
             orig_pred_max_loss = original_pred.cpu()
             opt_pred_max_loss = optimized_pred.cpu()
+            max_loss = optimized_loss
 
     print("########### Evaluation results ###############")
     print(f"Latency\norig: {np.mean(original_latencies)}\nopt: {np.mean(optimized_latencies)}")
