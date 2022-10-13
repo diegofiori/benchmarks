@@ -14,6 +14,8 @@ from utils import read_label, PoseEstimationDataset, compute_pck_metric, \
 
 def _load_test_data(data_path: Path):
     img_list = list(data_path.glob("*.npy"))
+    img_list.sort()
+    print(img_list)
     label_list = [read_label(img_path) for img_path in img_list]
     ds = PoseEstimationDataset(img_list, label_list, True)
     print(ds.keys)
@@ -45,7 +47,7 @@ def evaluate_model_performance(
     heatmap_max_loss = None
     orig_pred_max_loss = None
     opt_pred_max_loss = None
-    for input_tensor, heatmap, keypoint in test_dl:
+    for i, (input_tensor, heatmap, keypoint) in enumerate(test_dl):
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
             heatmap = heatmap.cuda()
@@ -79,6 +81,7 @@ def evaluate_model_performance(
         optimized_pck_list.append(optimized_pck)
         optimized_oks_list.append(optimized_oks)
         if optimized_loss > max_loss:
+            print(i)
             img_max_loss = torch.from_numpy(input_tensor).cpu().permute(0, 2, 3, 1).numpy()[0]
             heatmap_max_loss = heatmap.cpu().numpy()[0]
             orig_pred_max_loss = original_pred.cpu()
