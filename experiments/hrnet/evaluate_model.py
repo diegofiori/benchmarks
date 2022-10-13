@@ -123,7 +123,7 @@ def _plot_heatmaps(result_dict, save_file):
     fig = plt.figure(figsize=(15,5*num_rows))
     plt.subplot(num_rows, 3, 1)
     plt.imshow(img)
-    for i in range(num_rows):
+    for i in range(num_rows-1):
         plt.subplot(num_rows, 3, 3*i+3)
         plt.imshow(heatmap[i])
         plt.subplot(num_rows, 3, 3*i + 4)
