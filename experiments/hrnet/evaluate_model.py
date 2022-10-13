@@ -46,6 +46,11 @@ def evaluate_model_performance(
     heatmap_max_loss = None
     orig_pred_max_loss = None
     opt_pred_max_loss = None
+    min_loss = np.inf
+    img_min_loss = None
+    heatmap_min_loss = None
+    orig_pred_min_loss = None
+    opt_pred_min_loss = None
     for i, (input_tensor, heatmap, keypoint) in enumerate(test_dl):
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
@@ -80,12 +85,19 @@ def evaluate_model_performance(
         optimized_pck_list.append(optimized_pck)
         optimized_oks_list.append(optimized_oks)
         if optimized_loss > max_loss:
-            print(i)
+            print(f"Found new max loss at {i}")
             img_max_loss = torch.from_numpy(input_tensor).cpu().permute(0, 2, 3, 1).numpy()[0]
             heatmap_max_loss = heatmap.cpu().numpy()[0]
             orig_pred_max_loss = original_pred.cpu()
             opt_pred_max_loss = optimized_pred.cpu()
             max_loss = optimized_loss
+        if optimized_loss < min_loss:
+            print(f"Found new min loss at {i}")
+            img_min_loss = torch.from_numpy(input_tensor).cpu().permute(0, 2, 3, 1).numpy()[0]
+            heatmap_min_loss = heatmap.cpu().numpy()[0]
+            orig_pred_min_loss = original_pred.cpu()
+            opt_pred_min_loss = optimized_pred.cpu()
+            min_loss = optimized_loss
 
     print("########### Evaluation results ###############")
     print(f"Latency\norig: {np.mean(original_latencies)}\nopt: {np.mean(optimized_latencies)}")
@@ -109,20 +121,26 @@ def evaluate_model_performance(
             "optimized_pred": opt_pred_max_loss,
             "max_loss": max_loss,
         },
+        "min_losses": {
+            "img": img_min_loss,
+            "heatmap": heatmap_min_loss,
+            "original_pred": orig_pred_min_loss,
+            "optimized_pred": opt_pred_min_loss,
+            "max_loss": min_loss,
+        },
     }
     if save_path is not None:
-        serializable_dict = {key: value for key, value in result_dict.items() if key != "max_losses"}
+        serializable_dict = {key: value for key, value in result_dict.items() if key not in ["max_losses", "min_losses"]}
         with open(save_path / "result_evaluation.json", "w") as f:
             json.dump(serializable_dict, f)
     return result_dict
 
 
-def _plot_heatmaps(result_dict, save_file):
-    max_losses_dict = result_dict["max_losses"]
-    img = max_losses_dict["img"]
-    heatmap = max_losses_dict["heatmap"]
-    original_preds = max_losses_dict["original_pred"].numpy()[0]
-    optimized_preds = max_losses_dict["optimized_pred"].numpy()[0]
+def _plot_heatmaps(losses_dict, save_file):
+    img = losses_dict["img"]
+    heatmap = losses_dict["heatmap"]
+    original_preds = losses_dict["original_pred"].numpy()[0]
+    optimized_preds = losses_dict["optimized_pred"].numpy()[0]
     num_rows = len(heatmap) + 1
     fig = plt.figure(figsize=(15,5*num_rows))
     plt.subplot(num_rows, 3, 1)
@@ -138,7 +156,8 @@ def _plot_heatmaps(result_dict, save_file):
 
 
 def save_plots(result_dict, save_path):
-    _plot_heatmaps(result_dict, save_path / "heatmaps.png")
+    _plot_heatmaps(result_dict["max_losses"], save_path / "heatmaps_max.png")
+    _plot_heatmaps(result_dict["min_losses"], save_path / "heatmaps_min.png")
 
 
 if __name__ == "__main__":
