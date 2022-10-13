@@ -135,7 +135,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument("--save_path", "-s", type=Path, default=None, help="Path to directory where storing the results.")
-    parser.add_argument("--data_path", "-d", help="Path to data directory.")
+    parser.add_argument("--data_path", "-d", type=Path, help="Path to data directory.")
     parser.add_argument("--original_model_path", "-o", help="Path to the repo where the model is defined.")
     parser.add_argument("--learner_path", "-l", help="Path to the repo where the inference learner is stored.")
     parser.add_argument("--half", action="store_true")
