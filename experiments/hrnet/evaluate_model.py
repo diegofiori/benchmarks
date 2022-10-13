@@ -107,8 +107,9 @@ def evaluate_model_performance(
         },
     }
     if save_path is not None:
+        serializable_dict = {key: value for key, value in result_dict.items() if key != "max_losses"}
         with open(save_path / "result_evaluation.json", "w") as f:
-            json.dump(result_dict, f)
+            json.dump(serializable_dict, f)
     return result_dict
 
 
