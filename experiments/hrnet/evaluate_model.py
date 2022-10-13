@@ -124,11 +124,11 @@ def _plot_heatmaps(result_dict, save_file):
     plt.subplot(num_rows, 3, 1)
     plt.imshow(img)
     for i in range(num_rows-1):
-        plt.subplot(num_rows, 3, 3*i+3)
+        plt.subplot(num_rows, 3, 3*i+4)
         plt.imshow(heatmap[i])
-        plt.subplot(num_rows, 3, 3*i + 4)
-        plt.imshow(original_preds[i])
         plt.subplot(num_rows, 3, 3*i + 5)
+        plt.imshow(original_preds[i])
+        plt.subplot(num_rows, 3, 3*i + 6)
         plt.imshow(optimized_preds[i])
     plt.savefig(save_file)
 
