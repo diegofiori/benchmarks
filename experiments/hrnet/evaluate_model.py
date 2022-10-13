@@ -130,7 +130,7 @@ def _plot_heatmaps(result_dict, save_file):
         plt.imshow(original_preds[i])
         plt.subplot(num_rows, 3, 3*i + 5)
         plt.imshow(optimized_preds[i])
-    fig.save(save_file)
+    plt.savefig(save_file)
 
 
 def save_plots(result_dict, save_path):
