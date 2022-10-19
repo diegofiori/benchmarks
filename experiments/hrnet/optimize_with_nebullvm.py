@@ -10,7 +10,7 @@ def _load_test_data(data_path: Path):
     img_list = list(data_path.glob("*.npy"))
     img_list.sort()
     label_list = [read_label(img_path) for img_path in img_list]
-    ds = PoseEstimationDataset(img_list, label_list, True)
+    ds = PoseEstimationDataset(img_list, label_list, False)
     dl = torch.utils.data.DataLoader(ds, batch_size=1)
     return dl
 
