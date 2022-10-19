@@ -18,7 +18,10 @@ def _load_test_data(data_path: Path):
 def load_optimize(path_to_model: Path, path_to_data: Path):
     pose_model = get_hrnet(str(path_to_model))
     data_loader = _load_test_data(path_to_data)
-    input_data = [((x, ), y) for x, y in data_loader]
+    if torch.cuda.is_available():
+        input_data = [((x.cuda(),), y.cuda()) for x, y in data_loader]
+    else:
+        input_data = [((x, ), y) for x, y in data_loader]
     _ = optimize_model(
         pose_model,
         input_data=input_data,
