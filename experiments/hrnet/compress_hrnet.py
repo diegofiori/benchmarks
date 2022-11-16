@@ -16,7 +16,6 @@ from tqdm import tqdm
 from utils import get_hrnet, compute_pck_metric, compute_oks_metric, read_label, PoseEstimationDataset
 
 
-
 def get_data(path_to_data: str):
     image_paths = list(Path(path_to_data).glob("*.npy"))
     image_paths.sort()
@@ -142,7 +141,7 @@ def get_test_loss(model, dl_test):
                     data = data.half()
             output = model(data)
             loss = criterion(output, target)
-            oks_val += compute_oks_metric(output, keypoint_pos, 0.2).item() * target.size()[0]
+            oks_val += compute_oks_metric(output, keypoint_pos).item() * target.size()[0]
             pck_val += compute_pck_metric(output, keypoint_pos).item() * target.size()[0]
             test_loss += loss.item() * target.size()[0]
             total_num += target.size()[0]
