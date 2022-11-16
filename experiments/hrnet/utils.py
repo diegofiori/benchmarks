@@ -103,13 +103,12 @@ def get_pose_point(prediction_logits: torch.Tensor):
 def compute_pck_metric(prediction, label, tau=0.5):
     pose_point_pred = get_pose_point(prediction).float()
     label = label.float()
-    torso_dims = torch.norm(label[:, 1] - label[:, 11], dim=-1)
+    torso_dims = torch.norm(label[:, 1] - label[:, 11], dim=-1).unsqueeze(-1)
     # print(f"torso dim: {torso_dims}")
     distance = torch.norm(pose_point_pred-label, dim=-1)
     # print(pose_point_pred)
     # print(label)
     # print(f"distance: {distance}")
-    print(distance.shape, torso_dims.shape)
     return torch.mean((torch.less_equal(distance, torso_dims*tau)) * 1.)
 
 
