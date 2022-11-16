@@ -109,6 +109,7 @@ def compute_pck_metric(prediction, label, tau=0.5):
     # print(pose_point_pred)
     # print(label)
     # print(f"distance: {distance}")
+    print(distance.shape, torso_dims.shape)
     return torch.mean((torch.less_equal(distance, torso_dims*tau)) * 1.)
 
 
