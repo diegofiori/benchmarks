@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 import torch.utils
 import torch.utils.data
+from torchvision import transforms
 
 
 def get_hrnet(path_to_hrnet: str):
@@ -64,12 +65,16 @@ class PoseEstimationDataset(torch.utils.data.Dataset):
         self.keys = list(labels[0].keys())
         self._output_shape = [x // 4 for x in np.load(self.images[0]).shape[:-1]]
         self.return_keypoint_position = return_keypoint_position
+        self.tranform = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        )
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, item):
-        image = torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1) / 255
+        image = self.tranform(torch.from_numpy(np.load(self.images[item])).permute(2, 0, 1))
         label_dict = self.labels[0]
         label = torch.stack([
             _build_heatmap_per_layer(
