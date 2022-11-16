@@ -13,8 +13,7 @@ import torch.utils.data
 from deepspeed.compression.compress import init_compression, redundancy_clean
 from tqdm import tqdm
 
-from experiments.hrnet.utils import get_hrnet, compute_pck_metric, \
-    compute_oks_metric, read_label, PoseEstimationDataset
+from utils import get_hrnet, compute_pck_metric, compute_oks_metric, read_label, PoseEstimationDataset
 
 
 
