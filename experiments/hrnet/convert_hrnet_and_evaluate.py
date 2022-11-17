@@ -19,7 +19,6 @@ def convert_model_to_onnx(model: torch.nn.Module, save_path: str):
         input_tensor,
         save_path,
         opset_version=13,
-        do_constant_folding=True,
         input_names=["input"],
         output_names=["output"],
         dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
@@ -53,7 +52,9 @@ def main():
     args = parser.parse_args()
     model = get_hrnet(args.model)
     convert_model_to_onnx(model, args.save)
-    compute_latency_onnx(args.save, load_numpy_data(args.data))
+    latency = compute_latency_onnx(args.save, load_numpy_data(args.data))
+    print("####### Latency #######")
+    print(f"Latency: {latency}")
 
 
 if __name__ == "__main__":
