@@ -32,7 +32,7 @@ def load_numpy_data(data_path: Path):
 
 
 def compute_latency_onnx(model_path: str, input_data: List[np.ndarray]):
-    sess = onnxruntime.InferenceSession(model_path)
+    sess = onnxruntime.InferenceSession(model_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     input_name = sess.get_inputs()[0].name
     output_name = sess.get_outputs()[0].name
     latencies = []
