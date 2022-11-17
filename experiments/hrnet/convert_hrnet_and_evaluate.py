@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 import onnxruntime
 import torch
+from torchvision import transforms
 
 from utils import get_hrnet
 
@@ -36,7 +37,9 @@ def compute_latency_onnx(model_path: str, input_data: List[np.ndarray]):
     input_name = sess.get_inputs()[0].name
     output_name = sess.get_outputs()[0].name
     latencies = []
+    transform = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     for input_tensor in input_data:
+        input_tensor = transform(torch.from_numpy(input_tensor) / 255).numpy()
         st = time.time()
         sess.run([output_name], {input_name: input_tensor})
         latencies.append(time.time() - st)
