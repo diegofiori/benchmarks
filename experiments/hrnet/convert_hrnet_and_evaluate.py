@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -25,6 +26,12 @@ def convert_model_to_onnx(model: torch.nn.Module, save_path: str):
     )
 
 
+def load_numpy_data(data_path: Path):
+    img_list = list(data_path.glob("*.npy"))
+    img_list.sort()
+    return [np.load(str(img_path)) for img_path in img_list]
+
+
 def compute_latency_onnx(model_path: str, input_data: List[np.ndarray]):
     sess = onnxruntime.InferenceSession(model_path)
     input_name = sess.get_inputs()[0].name
@@ -42,9 +49,11 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("--model", "-m", type=str, help="Path to model")
     parser.add_argument("--save", "-s", type=str, help="Path to save")
+    parser.add_argument("--data", "-d", type=Path, help="Path to data")
     args = parser.parse_args()
     model = get_hrnet(args.model)
-    convert_model_to_onnx(model, "hrnet_w32_384x288.onnx")
+    convert_model_to_onnx(model, args.save)
+    compute_latency_onnx(args.save, load_numpy_data(args.data))
 
 
 if __name__ == "__main__":
