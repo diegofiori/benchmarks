@@ -40,6 +40,7 @@ def compute_latency_onnx(model_path: str, input_data: List[np.ndarray]):
     transform = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     for input_tensor in input_data:
         input_tensor = transform(torch.from_numpy(input_tensor) / 255).unsqueeze(0).numpy()
+        print(input_tensor.shape)
         st = time.time()
         sess.run([output_name], {input_name: input_tensor})
         latencies.append(time.time() - st)
