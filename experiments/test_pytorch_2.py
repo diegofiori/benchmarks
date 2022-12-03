@@ -60,6 +60,8 @@ def main():
     if not args.nebullvm:
         results["mode"] = mode
         filename = f"results_torch_{mode}.json"
+        if args.half:
+            filename = f"results_torch_{mode}_half.json"
     else:
         filename = "results_nebullvm.json"
 
