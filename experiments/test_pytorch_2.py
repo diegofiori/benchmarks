@@ -11,6 +11,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--nebullvm", "-n", action="store_true")
     parser.add_argument("--max_autotune", action="store_true")
+    parser.add_argument("--half", action="store_true")
     args = parser.parse_args()
     model = models.resnet50(pretrained=True)
     input_data = [((torch.randn(args.batch_size, 3, 224, 224), ), torch.zeros(args.batch_size))]
@@ -18,6 +19,9 @@ def main():
     if torch.cuda.is_available():
         model = model.cuda()
         input_data = [((x[0].cuda(), ), y.cuda()) for x, y in input_data]
+        if args.half:
+            model = model.half()
+            input_data = [((x[0].half(), ), y.half()) for x, y in input_data]
 
     if args.nebullvm:
         from nebullvm import optimize_model
@@ -29,6 +33,8 @@ def main():
     new_input_data = [torch.randn(args.batch_size, 3, 224, 224) for _ in range(100)]
     if torch.cuda.is_available():
         new_input_data = [x.cuda() for x in new_input_data]
+        if args.half:
+            new_input_data = [x.half() for x in new_input_data]
 
     times = []
     with torch.no_grad():
