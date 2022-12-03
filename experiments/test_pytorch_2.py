@@ -25,7 +25,7 @@ def main():
 
     if args.nebullvm:
         from nebullvm import optimize_model
-        optimized_model = optimize_model(model, input_data, metric_drop_ths=100., optimization_time="unconstrained")
+        optimized_model = optimize_model(model, input_data, store_latencies=True, metric_drop_ths=100., optimization_time="unconstrained")
     else:
         mode = "max-autotune" if args.max_autotune else "default"
         optimized_model = torch.compile(model, mode=mode)
