@@ -12,7 +12,7 @@ def main():
     parser.add_argument("--nebullvm", "-n", action="store_true")
     parser.add_argument("--max_autotune", action="store_true")
     args = parser.parse_args()
-    model = models.vit_b_16(pretrained=True)
+    model = models.resnet50(pretrained=True)
     input_data = [((torch.randn(args.batch_size, 3, 224, 224), ), torch.zeros(args.batch_size))]
     model.eval()
     if torch.cuda.is_available():
