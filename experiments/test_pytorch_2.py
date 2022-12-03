@@ -34,7 +34,7 @@ def main():
     with torch.no_grad():
         for i, x in enumerate(new_input_data):
             if i < 10:
-                optimize_model(x)  # warmup
+                optimized_model(x)  # warmup
                 continue
             start = torch.cuda.Event(enable_timing=True)
             end = torch.cuda.Event(enable_timing=True)
