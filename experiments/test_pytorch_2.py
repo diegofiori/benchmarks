@@ -59,11 +59,11 @@ def main():
     }
     if not args.nebullvm:
         results["mode"] = mode
-        filename = f"results_torch_{mode}.json"
+        filename = f"results_torch_{args.batch_size}_{mode}.json"
         if args.half:
-            filename = f"results_torch_{mode}_half.json"
+            filename = f"results_torch_{args.batch_size}_{mode}_half.json"
     else:
-        filename = "results_nebullvm.json"
+        filename = f"results_nebullvm_{args.batch_size}.json"
 
     with open(filename, "w") as f:
         json.dump(results, f)
