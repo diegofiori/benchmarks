@@ -23,7 +23,7 @@ def main():
         from nebullvm import optimize_model
         optimized_model = optimize_model(model, input_data, metric_drop_ths=100., optimization_time="unconstrained")
     else:
-        mode = "max_autotune" if args.max_autotune else "default"
+        mode = "max-autotune" if args.max_autotune else "default"
         optimized_model = torch.compile(model, mode=mode)
 
     new_input_data = [torch.randn(args.batch_size, 3, 224, 224) for _ in range(100)]
