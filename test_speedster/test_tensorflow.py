@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 from speedster import optimize_model
 
 
